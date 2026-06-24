@@ -1,0 +1,47 @@
+[
+  {
+    "key": "AUTH-1234",
+    "summary": "Implement Okta SSO for enterprise tier",
+    "description": "As an enterprise admin, I want to configure SSO with Okta so that my team can authenticate using our existing identity provider.\n\nAcceptance Criteria:\n- Support OAuth2/OIDC flow with Okta\n- Handle SAML assertions\n- Token exchange for session management\n- Support for multiple Okta organizations",
+    "type": "Story",
+    "status": "Done",
+    "priority": "High",
+    "assignee": "jane.smith",
+    "reporter": "product.manager",
+    "labels": ["enterprise", "sso", "q1-priority"],
+    "created": "2024-03-01T09:00:00Z",
+    "resolved": "2024-03-17T16:00:00Z",
+    "story_points": 8,
+    "epic": "Enterprise Authentication"
+  },
+  {
+    "key": "AUTH-1235",
+    "summary": "Handle encoded parameters in Okta callback URLs",
+    "description": "Bug: When Okta sends callback with URL-encoded parameters (especially with special characters in state param), the auth flow fails with a 400 error.\n\nSteps to reproduce:\n1. Configure SSO with org that has special chars in name\n2. Initiate login flow\n3. Okta callback fails\n\nExpected: Auth flow completes successfully regardless of encoding.",
+    "type": "Bug",
+    "status": "Done",
+    "priority": "Medium",
+    "assignee": "jane.smith",
+    "reporter": "support.engineer",
+    "labels": ["bug", "sso"],
+    "created": "2024-03-14T11:00:00Z",
+    "resolved": "2024-03-16T12:00:00Z",
+    "story_points": 2,
+    "epic": "Enterprise Authentication"
+  },
+  {
+    "key": "AUTH-1236",
+    "summary": "Support Okta directory sync for user provisioning",
+    "description": "Enterprise customers need automatic user provisioning when they enable Okta directory sync. This should:\n- Implement SCIM 2.0 endpoints\n- Handle create/update/deactivate user events\n- Sync user attributes (name, email, groups)\n- Support incremental sync",
+    "type": "Story",
+    "status": "Done",
+    "priority": "High",
+    "assignee": "bob.jones",
+    "reporter": "product.manager",
+    "labels": ["enterprise", "provisioning", "q1-priority"],
+    "created": "2024-03-05T09:00:00Z",
+    "resolved": "2024-03-17T15:00:00Z",
+    "story_points": 5,
+    "epic": "Enterprise Authentication"
+  }
+]

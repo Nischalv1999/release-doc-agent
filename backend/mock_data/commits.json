@@ -1,0 +1,65 @@
+[
+  {
+    "sha": "a1b2c3d",
+    "message": "feat(auth): implement Okta SSO integration for enterprise customers",
+    "author": "jane.smith",
+    "date": "2024-03-15T10:30:00Z",
+    "files_changed": ["src/auth/okta.ts", "src/auth/sso-handler.ts", "src/config/auth.ts"],
+    "additions": 342,
+    "deletions": 12
+  },
+  {
+    "sha": "d4e5f6g",
+    "message": "feat(auth): add SAML assertion validation and token exchange",
+    "author": "jane.smith",
+    "date": "2024-03-15T14:20:00Z",
+    "files_changed": ["src/auth/saml-validator.ts", "src/auth/token-exchange.ts"],
+    "additions": 198,
+    "deletions": 5
+  },
+  {
+    "sha": "h7i8j9k",
+    "message": "feat(users): support provisioning users from Okta directory sync",
+    "author": "bob.jones",
+    "date": "2024-03-16T09:15:00Z",
+    "files_changed": ["src/users/provisioning.ts", "src/users/directory-sync.ts", "src/users/models.ts"],
+    "additions": 267,
+    "deletions": 34
+  },
+  {
+    "sha": "l0m1n2o",
+    "message": "fix(auth): handle edge case where Okta callback URL contains encoded params",
+    "author": "jane.smith",
+    "date": "2024-03-16T11:45:00Z",
+    "files_changed": ["src/auth/okta.ts", "tests/auth/okta.test.ts"],
+    "additions": 45,
+    "deletions": 8
+  },
+  {
+    "sha": "p3q4r5s",
+    "message": "chore(config): add SSO environment variables and deployment config",
+    "author": "bob.jones",
+    "date": "2024-03-16T16:00:00Z",
+    "files_changed": ["config/sso.yaml", ".env.example", "deploy/helm/values.yaml"],
+    "additions": 89,
+    "deletions": 3
+  },
+  {
+    "sha": "t6u7v8w",
+    "message": "test(auth): add integration tests for SSO flow end-to-end",
+    "author": "jane.smith",
+    "date": "2024-03-17T10:00:00Z",
+    "files_changed": ["tests/integration/sso-flow.test.ts", "tests/fixtures/okta-responses.json"],
+    "additions": 312,
+    "deletions": 0
+  },
+  {
+    "sha": "x9y0z1a",
+    "message": "docs(auth): update API reference with SSO endpoints",
+    "author": "bob.jones",
+    "date": "2024-03-17T14:30:00Z",
+    "files_changed": ["docs/api-reference.md"],
+    "additions": 78,
+    "deletions": 2
+  }
+]

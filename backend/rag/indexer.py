@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from openai import OpenAI, APIError, RateLimitError
+
 
 logger = logging.getLogger("release_agent")
 
@@ -81,7 +81,7 @@ def chunk_document(
 
 def build_index(
     documents: list[dict],
-    client: OpenAI,
+    client,
     force_rebuild: bool = False,
 ) -> dict[str, Any]:
     """Build a vector index from documents.
@@ -93,7 +93,7 @@ def build_index(
     
     Args:
         documents: List of document dicts with path, title, content
-        client: OpenAI client for embedding
+        client: LLMClient or OpenAI client for embedding
         force_rebuild: Skip cache and rebuild from scratch
         
     Returns:
@@ -183,38 +183,45 @@ def clear_index() -> None:
 
 def _get_embeddings_with_retry(
     texts: list[str],
-    client: OpenAI,
+    client,
     batch_size: int = 50,
     max_retries: int = 3,
 ) -> list[np.ndarray]:
-    """Get embeddings from OpenAI API in batches with retry logic."""
+    """Get embeddings using LLMClient or raw OpenAI client with retry."""
     all_embeddings: list[np.ndarray] = []
+
+    # Ensure no empty strings
+    texts = [t if t.strip() else "empty" for t in texts]
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
-        # Ensure no empty strings (API rejects them)
-        batch = [t if t.strip() else "empty" for t in batch]
 
         for attempt in range(1, max_retries + 1):
             try:
-                response = client.embeddings.create(
-                    model="text-embedding-3-small",
-                    input=batch,
-                )
-                for item in response.data:
-                    all_embeddings.append(np.array(item.embedding))
+                # Support both LLMClient and raw OpenAI client
+                if hasattr(client, 'embed') and callable(client.embed):
+                    vectors = client.embed(batch)
+                    for v in vectors:
+                        all_embeddings.append(np.array(v))
+                else:
+                    response = client.embeddings.create(
+                        model="text-embedding-3-small",
+                        input=batch,
+                    )
+                    for item in response.data:
+                        all_embeddings.append(np.array(item.embedding))
                 break
-            except RateLimitError:
-                wait = 2 ** attempt
-                logger.warning(f"Rate limited on embeddings, waiting {wait}s")
-                time.sleep(wait)
-            except APIError as e:
-                logger.error(f"Embedding API error: {e}")
-                if attempt == max_retries:
-                    # Return zero vectors as fallback
-                    for _ in batch:
-                        all_embeddings.append(np.zeros(1536))
-                time.sleep(1)
+            except Exception as e:
+                if "rate" in str(e).lower() or "429" in str(e):
+                    wait = 2 ** attempt
+                    logger.warning(f"Rate limited on embeddings, waiting {wait}s")
+                    time.sleep(wait)
+                else:
+                    logger.error(f"Embedding error: {e}")
+                    if attempt == max_retries:
+                        for _ in batch:
+                            all_embeddings.append(np.zeros(1536))
+                    time.sleep(1)
 
     return all_embeddings
 

@@ -24,6 +24,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
+from llm_client import LLMClient
 from pydantic import BaseModel, Field
 
 from config import load_config, AppConfig, OpenAIConfig
@@ -92,10 +93,22 @@ releases_store = ReleaseStore(max_size=app_config.max_releases_in_memory)
 
 
 # --- Helpers ---
+def get_llm_client():
+    """Create LLM client (OpenAI or Anthropic based on config)."""
+    try:
+        return LLMClient()
+    except (ValueError, ImportError) as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"LLM configuration error: {e}. See backend/.env.example for setup.",
+        )
+
+
 def get_openai_client() -> OpenAI:
-    """Create OpenAI client with validation."""
+    """Create raw OpenAI client for embeddings/RAG."""
     errors = openai_config.validate()
     if errors:
+        # Try to proceed without - LLMClient may handle it
         raise HTTPException(
             status_code=500,
             detail=f"Configuration error: {'; '.join(errors)}. Add OPENAI_API_KEY to backend/.env",
@@ -103,7 +116,7 @@ def get_openai_client() -> OpenAI:
     return OpenAI(
         api_key=openai_config.api_key,
         timeout=openai_config.timeout_seconds,
-        max_retries=0,  # We handle retries in agents
+        max_retries=0,
     )
 
 
@@ -175,7 +188,7 @@ def generate_release(request: GenerateRequest):
     logger.info(f"Starting generation: {request.release_name}", extra={"release_id": release_id})
 
     try:
-        client = get_openai_client()
+        client = get_llm_client()
     except HTTPException:
         raise
 
@@ -195,7 +208,7 @@ def generate_release(request: GenerateRequest):
             f"{len(tickets)} tickets, {len(existing_docs)} docs"
         )
 
-        # Stage 2: Build RAG index
+        # Stage 2: Build RAG index (uses OpenAI embeddings or local fallback)
         build_index(existing_docs, client)
 
         # Stage 3: Digester Agent
@@ -361,7 +374,7 @@ def list_docs():
 @app.get("/api/docs/search")
 def search_docs(q: str = Query(..., min_length=1, max_length=500)):
     """Search documentation using RAG retrieval."""
-    client = get_openai_client()
+    client = get_llm_client()
     docs_connector = DocsConnector()
     documents = docs_connector.get_all_documents()
     results = retrieve(q, client, top_k=5, documents=documents)
@@ -381,7 +394,7 @@ def delete_release(release_id: str):
 @app.post("/api/rag/rebuild")
 def rebuild_rag_index():
     """Force rebuild of the RAG index."""
-    client = get_openai_client()
+    client = get_llm_client()
     docs_connector = DocsConnector()
     documents = docs_connector.get_all_documents()
     clear_index()

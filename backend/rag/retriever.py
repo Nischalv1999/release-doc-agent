@@ -9,7 +9,6 @@ Handles:
 import logging
 
 import numpy as np
-from openai import OpenAI
 
 from .indexer import load_index, build_index
 
@@ -21,7 +20,7 @@ MIN_RELEVANCE_THRESHOLD = 0.1
 
 def retrieve(
     query: str,
-    client: OpenAI,
+    client,
     top_k: int = 5,
     documents: list | None = None,
     min_score: float = MIN_RELEVANCE_THRESHOLD,
@@ -30,7 +29,7 @@ def retrieve(
     
     Args:
         query: Natural language search query
-        client: OpenAI client for embedding
+        client: LLMClient or OpenAI client
         top_k: Maximum number of results to return
         documents: Documents to index if no index exists
         min_score: Minimum relevance score threshold
@@ -56,11 +55,15 @@ def retrieve(
 
     # Embed the query
     try:
-        response = client.embeddings.create(
-            model="text-embedding-3-small",
-            input=[query.strip()],
-        )
-        query_embedding = np.array(response.data[0].embedding)
+        if hasattr(client, 'embed') and callable(client.embed):
+            vectors = client.embed([query.strip()])
+            query_embedding = np.array(vectors[0])
+        else:
+            response = client.embeddings.create(
+                model="text-embedding-3-small",
+                input=[query.strip()],
+            )
+            query_embedding = np.array(response.data[0].embedding)
     except Exception as e:
         logger.error(f"Failed to embed query: {e}")
         return []

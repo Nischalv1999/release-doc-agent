@@ -6,7 +6,7 @@ Handles edge cases:
 - Very large doc corpora (truncation)
 """
 import logging
-from openai import OpenAI
+
 
 from .base import call_llm_with_retry, truncate_text, AgentError
 
@@ -32,7 +32,7 @@ Rules:
 def plan(
     digest: dict,
     existing_docs: list[dict],
-    client: OpenAI,
+    client,
     max_retries: int = 3,
 ) -> dict:
     """Create a documentation plan based on the digest and existing docs.
@@ -40,7 +40,7 @@ def plan(
     Args:
         digest: Structured release digest from Digester agent
         existing_docs: List of existing documentation documents
-        client: OpenAI client instance
+        client client instance
         max_retries: Number of retry attempts
         
     Returns:

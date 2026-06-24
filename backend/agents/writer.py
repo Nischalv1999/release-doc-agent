@@ -7,7 +7,7 @@ Handles edge cases:
 - Malformed plan structure
 """
 import logging
-from openai import OpenAI
+
 
 from .base import call_llm_with_retry, truncate_text, validate_writer_output, AgentError
 
@@ -37,7 +37,7 @@ def write(
     digest: dict,
     plan: dict,
     relevant_docs: list[dict],
-    client: OpenAI,
+    client,
     max_retries: int = 3,
 ) -> dict:
     """Generate all release documentation artifacts.
@@ -46,7 +46,7 @@ def write(
         digest: Structured release digest
         plan: Documentation plan from Planner
         relevant_docs: RAG-retrieved document chunks
-        client: OpenAI client instance
+        client client instance
         max_retries: Number of retry attempts
         
     Returns:

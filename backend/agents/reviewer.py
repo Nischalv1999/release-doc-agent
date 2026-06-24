@@ -6,7 +6,7 @@ Handles edge cases:
 - Reviewer disagreeing with itself (normalized scoring)
 """
 import logging
-from openai import OpenAI
+
 
 from .base import call_llm_with_retry, truncate_text, validate_review_output, AgentError
 
@@ -39,7 +39,7 @@ def review(
     generated_docs: dict,
     digest: dict,
     original_artifacts: dict,
-    client: OpenAI,
+    client,
     max_retries: int = 3,
 ) -> dict:
     """Review generated documentation against source evidence.
@@ -48,7 +48,7 @@ def review(
         generated_docs: Output from Writer agent
         digest: Original digest for cross-reference
         original_artifacts: Raw tickets and PRs for ground truth
-        client: OpenAI client instance
+        client client instance
         max_retries: Number of retry attempts
         
     Returns:

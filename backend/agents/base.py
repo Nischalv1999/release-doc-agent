@@ -4,8 +4,6 @@ import time
 import logging
 from typing import Any
 
-from openai import OpenAI, APIError, APITimeoutError, RateLimitError
-
 logger = logging.getLogger("release_agent")
 
 
@@ -23,7 +21,7 @@ class AgentTimeoutError(AgentError):
 
 
 def call_llm_with_retry(
-    client: OpenAI,
+    client,  # LLMClient or OpenAI client
     messages: list[dict[str, str]],
     agent_name: str,
     temperature: float = 0.1,
@@ -31,7 +29,9 @@ def call_llm_with_retry(
     timeout: int = 60,
     model: str = "gpt-4o-mini",
 ) -> dict[str, Any]:
-    """Call OpenAI with retry logic, exponential backoff, and structured JSON parsing.
+    """Call LLM with retry logic, exponential backoff, and structured JSON parsing.
+    
+    Works with both the unified LLMClient and raw OpenAI client.
     
     Handles:
     - Rate limiting (429) with exponential backoff
@@ -50,13 +50,20 @@ def call_llm_with_retry(
             )
             start_time = time.time()
 
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                response_format={"type": "json_object"},
-                temperature=temperature,
-                timeout=timeout,
-            )
+            # Support both LLMClient and raw OpenAI client
+            if hasattr(client, 'chat') and callable(client.chat):
+                # Unified LLMClient
+                content = client.chat(messages, temperature=temperature, timeout=timeout)
+            else:
+                # Raw OpenAI client (backwards compatible)
+                response = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    response_format={"type": "json_object"},
+                    temperature=temperature,
+                    timeout=timeout,
+                )
+                content = response.choices[0].message.content
 
             duration_ms = int((time.time() - start_time) * 1000)
             logger.info(
@@ -65,7 +72,6 @@ def call_llm_with_retry(
             )
 
             # Validate response
-            content = response.choices[0].message.content
             if not content or not content.strip():
                 raise AgentError(agent_name, "Empty response from LLM", attempt)
 
@@ -84,35 +90,36 @@ def call_llm_with_retry(
 
             return result
 
-        except RateLimitError as e:
+        except AgentError:
+            raise
+        except Exception as e:
             last_error = e
-            wait_time = min(2 ** attempt, 30)  # Exponential backoff, max 30s
-            logger.warning(
-                f"Rate limited, waiting {wait_time}s",
-                extra={"agent": agent_name},
-            )
-            time.sleep(wait_time)
+            error_type = type(e).__name__
 
-        except APITimeoutError as e:
-            last_error = e
-            logger.warning(
-                f"Timeout on attempt {attempt}",
-                extra={"agent": agent_name},
-            )
-            if attempt < max_retries:
-                time.sleep(2)
-
-        except APIError as e:
-            last_error = e
-            logger.error(
-                f"API error: {e.status_code} {e.message}",
-                extra={"agent": agent_name},
-            )
-            # Don't retry on 4xx client errors (except 429 handled above)
-            if e.status_code and 400 <= e.status_code < 500:
-                raise AgentError(agent_name, f"Client error: {e.message}", attempt)
-            if attempt < max_retries:
-                time.sleep(2)
+            # Check for rate limiting
+            if "rate" in str(e).lower() or "429" in str(e):
+                wait_time = min(2 ** attempt, 30)
+                logger.warning(
+                    f"Rate limited, waiting {wait_time}s",
+                    extra={"agent": agent_name},
+                )
+                time.sleep(wait_time)
+            # Check for timeout
+            elif "timeout" in error_type.lower() or "timeout" in str(e).lower():
+                logger.warning(
+                    f"Timeout on attempt {attempt}",
+                    extra={"agent": agent_name},
+                )
+                if attempt < max_retries:
+                    time.sleep(2)
+            # Other API errors
+            else:
+                logger.error(
+                    f"Error ({error_type}): {e}",
+                    extra={"agent": agent_name},
+                )
+                if attempt < max_retries:
+                    time.sleep(2)
 
     raise AgentError(
         agent_name,
@@ -142,14 +149,12 @@ def validate_digest_output(result: dict) -> dict:
         if key not in result:
             result[key] = default
         elif isinstance(default, list) and not isinstance(result[key], list):
-            # Handle case where LLM returns string instead of list
             result[key] = [result[key]] if result[key] else []
-    
-    # Normalize risk_level
+
     valid_risks = {"low", "medium", "high"}
     if result["risk_level"] not in valid_risks:
         result["risk_level"] = "medium"
-    
+
     return result
 
 
@@ -165,7 +170,6 @@ def validate_writer_output(result: dict) -> dict:
         if key not in result:
             result[key] = default
 
-    # Validate documentation_updates structure
     valid_updates = []
     for update in result.get("documentation_updates", []):
         if isinstance(update, dict) and "doc_path" in update:
@@ -193,12 +197,10 @@ def validate_review_output(result: dict) -> dict:
         if key not in result:
             result[key] = default
 
-    # Ensure score is numeric and bounded
     try:
         result["overall_score"] = max(1, min(10, int(result["overall_score"])))
     except (ValueError, TypeError):
         result["overall_score"] = 5
 
-    # Ensure approved is boolean
     result["approved"] = bool(result.get("approved", False))
     return result

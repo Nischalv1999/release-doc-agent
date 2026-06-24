@@ -7,7 +7,7 @@ Handles edge cases:
 - Extremely long inputs (truncation)
 """
 import logging
-from openai import OpenAI
+
 
 from .base import (
     call_llm_with_retry,
@@ -41,7 +41,7 @@ def digest(
     commits: list,
     pull_requests: list,
     tickets: list,
-    client: OpenAI,
+    client,
     max_retries: int = 3,
 ) -> dict:
     """Digest raw artifacts into a structured release summary.
@@ -50,7 +50,7 @@ def digest(
         commits: List of commit objects
         pull_requests: List of PR objects
         tickets: List of Jira ticket objects
-        client: OpenAI client instance
+        client client instance
         max_retries: Number of retry attempts
         
     Returns:

@@ -1,170 +1,183 @@
 # Release Documentation Agent
 
-An AI-powered system that automatically generates release documentation from engineering artifacts (git commits, pull requests, Jira tickets). Uses a multi-agent pipeline with RAG retrieval and built-in quality evaluation.
+An AI-powered system that automatically generates release documentation from engineering artifacts — git commits, pull requests, and Jira tickets. Produces a changelog, internal release notes, customer-facing release notes, and documentation update suggestions using a multi-agent pipeline.
 
-## Features
+---
 
-- **Multi-Agent Pipeline**: Digester → Planner → Writer → Reviewer
-- **RAG Documentation Retrieval**: Identifies impacted docs and suggests updates
-- **Evaluation Framework**: Measures hallucination rate, ticket coverage, doc accuracy
-- **Review & Approval UI**: Edit generated content before approving
-- **Source Evidence**: Full traceability from output back to source artifacts
+## Prerequisites
 
-## Quick Start
+| Tool | Minimum version | Check |
+|------|----------------|-------|
+| Python | 3.11+ | `python3 --version` |
+| Node.js | 18+ | `node --version` |
+| Git | any | `git --version` |
 
-### Prerequisites
+You also need an API key from one of the following AI providers:
 
-- Python 3.11+ (check: `python3 --version`)
-- Node.js 18+ (check: `node --version`)
-- An OpenAI API key ([get one here](https://platform.openai.com/api-keys))
+**OpenAI** — [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Key starts with `sk-...`
+- New accounts receive $5 free credit (~150–500 runs at ~$0.01–0.03 per generation)
 
-### 1. Backend Setup
+**Anthropic (Claude)** — [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys)
+- Key starts with `sk-ant-...`
+- New accounts receive $5 free credit
+- Note: embeddings still use OpenAI when using Anthropic. Either provide both keys or the system falls back to a local embedding method.
+
+---
+
+## Backend Setup
 
 ```bash
-cd backend
+cd release-doc-agent/backend
 
-# Create virtual environment and install dependencies
+# Create and activate virtual environment
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate        # macOS / Linux
+# .venv\Scripts\activate         # Windows
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Configure your OpenAI API key
+# Create your environment config
 cp .env.example .env
-# Edit .env and add your OPENAI_API_KEY
+```
 
-# Run the server
+Edit `.env` and set your provider and API key:
+
+**Using OpenAI:**
+```
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-your-key-here
+```
+
+**Using Anthropic (Claude):**
+```
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-your-key-here
+OPENAI_API_KEY=sk-your-openai-key-here   # optional, for better embeddings
+```
+
+Start the backend server:
+
+```bash
 python main.py
 ```
 
-Backend starts at http://localhost:8000. API docs at http://localhost:8000/docs.
+Expected output:
+```
+INFO: Starting server on 0.0.0.0:8000
+INFO: Uvicorn running on http://0.0.0.0:8000
+```
 
-### 2. Frontend Setup
+API is live at **http://localhost:8000** — interactive docs at **http://localhost:8000/docs**.
+
+Leave this terminal running and open a new one for the frontend.
+
+---
+
+## Frontend Setup
 
 ```bash
-cd frontend
+cd release-doc-agent/frontend
 
-# Install dependencies
 npm install
-
-# Start dev server
 npm run dev
 ```
 
-Frontend starts at http://localhost:3000.
-
-### 3. Generate Documentation
-
-1. Open http://localhost:3000
-2. Enter a release name (e.g., "v2.4.0")
-3. Click "Generate" — the agent pipeline runs (~15-30 seconds)
-4. Review the generated changelog, internal notes, customer notes
-5. Check the Evaluation tab for quality metrics
-6. Edit if needed, then click "Approve"
-
-## Architecture
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full diagram.
-
+Expected output:
 ```
-Commits + PRs + Tickets
-        │
-        ▼
-  [Digester Agent] → Structured summary
-        │
-        ▼
-  [Planner Agent]  → Documentation plan
-        │
-        ▼
-  [Writer Agent]   → Generated artifacts (with RAG context)
-        │
-        ▼
-  [Reviewer Agent] → Quality assessment
-        │
-        ▼
-  [Evaluator]      → Metrics (hallucination, coverage, accuracy)
-        │
-        ▼
-  [UI]             → Human review, edit, approve
+▲ Next.js 14.x
+- Local: http://localhost:3000
 ```
 
-## Project Structure
+---
 
-```
-release-doc-agent/
-├── backend/
-│   ├── main.py                 # FastAPI app + API endpoints
-│   ├── agents/
-│   │   ├── digester.py         # Analyzes raw artifacts
-│   │   ├── planner.py          # Plans documentation structure
-│   │   ├── writer.py           # Generates release docs
-│   │   └── reviewer.py         # Reviews for quality/accuracy
-│   ├── rag/
-│   │   ├── indexer.py          # Chunks + embeds documents
-│   │   └── retriever.py       # Cosine similarity search
-│   ├── connectors/
-│   │   ├── github.py           # GitHub data (mock/real)
-│   │   ├── jira.py             # Jira data (mock/real)
-│   │   └── docs.py             # Documentation loader
-│   ├── evaluation/
-│   │   └── evaluator.py        # Quality metrics framework
-│   ├── mock_data/              # Sample data for demo
-│   │   ├── commits.json
-│   │   ├── pull_requests.json
-│   │   ├── jira_tickets.json
-│   │   └── docs/               # Sample documentation
-│   └── tests/                  # Unit tests
-├── frontend/
-│   └── src/
-│       ├── app/page.tsx        # Main page
-│       └── components/         # UI components
-├── docs/
-│   ├── ARCHITECTURE.md         # System architecture diagram
-│   └── DESIGN.md               # Design decisions + tradeoffs
-└── README.md
-```
+## Using the App
+
+1. Open **http://localhost:3000**
+2. Enter a release name (e.g. `v2.5.0`) and click **Generate**
+3. The pipeline runs in ~15–30 seconds (4 AI agent calls)
+4. Review the output across tabs: **Changelog**, **Internal Notes**, **Customer Notes**, **Doc Updates**, **Source Evidence**, **Evaluation**
+5. Click **Edit** to modify any section, then **Approve** to finalise
+
+The system uses mock GitHub and Jira data by default so it runs without any live API credentials. The mock data simulates a realistic release with commits, pull requests, tickets, and existing documentation.
+
+---
 
 ## Running Tests
 
 ```bash
 cd backend
 source .venv/bin/activate
-pip install pytest pytest-asyncio
 pytest tests/ -v
 ```
+
+Expected: `404 passed`
+
+---
 
 ## API Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/health` | Health check |
+| GET | `/api/health` | Health check and config status |
 | POST | `/api/releases/generate` | Run full agent pipeline |
-| GET | `/api/releases` | List all releases |
-| GET | `/api/releases/{id}` | Get release details |
-| POST | `/api/releases/{id}/approve` | Approve (with optional edits) |
-| POST | `/api/releases/{id}/reject` | Reject release |
+| GET | `/api/releases` | List all stored releases |
+| GET | `/api/releases/{id}` | Get a specific release |
+| POST | `/api/releases/{id}/approve` | Approve with optional edits |
+| POST | `/api/releases/{id}/reject` | Reject a release |
 | GET | `/api/docs` | List indexed documentation |
 | GET | `/api/docs/search?q=...` | Search docs via RAG |
 
-## Design Decisions
+---
 
-See [docs/DESIGN.md](docs/DESIGN.md) for full details. Key choices:
+## Project Structure
 
-1. **Multi-agent over monolithic**: Better debugging, focused prompts, quality gate
-2. **OpenAI over local models**: Zero GPU requirement, excellent JSON mode
-3. **NumPy over vector DB**: No infrastructure for small doc corpora
-4. **Mock data default**: Runs immediately without external API setup
+```
+release-doc-agent/
+├── backend/
+│   ├── .env                    ← your API keys go here
+│   ├── main.py                 ← FastAPI server + pipeline orchestration
+│   ├── llm_client.py           ← unified OpenAI / Anthropic abstraction
+│   ├── agents/
+│   │   ├── digester.py         ← summarises raw artifacts into structured digest
+│   │   ├── planner.py          ← editorial strategy + RAG search queries
+│   │   ├── writer.py           ← generates the four documentation artifacts
+│   │   └── reviewer.py         ← quality check + security exclusion verification
+│   ├── rag/
+│   │   ├── indexer.py          ← chunks, embeds, and caches documentation
+│   │   └── retriever.py        ← multi-query retrieval with MMR diversity
+│   ├── connectors/
+│   │   ├── github.py           ← commits and pull requests (mock or real)
+│   │   ├── jira.py             ← tickets (mock or real)
+│   │   └── docs.py             ← existing documentation loader
+│   ├── evaluation/
+│   │   └── evaluator.py        ← quality metrics and critical gates
+│   ├── mock_data/              ← sample data for demo (no API needed)
+│   │   ├── commits.json
+│   │   ├── pull_requests.json
+│   │   ├── jira_tickets.json
+│   │   ├── docs/               ← sample documentation corpus
+│   │   └── gold/               ← reference outputs for evaluation
+│   └── tests/                  ← 404 unit tests
+├── frontend/
+│   └── src/
+│       ├── app/page.tsx        ← main page
+│       └── components/         ← GeneratePanel, ReleaseCard
+├── DESIGN.md                   ← architecture decisions, RAG pipeline, trade-offs
+└── README.md
+```
 
-## Limitations
+---
 
-- Requires OpenAI API key (costs ~$0.01-0.05 per generation with gpt-4o-mini)
-- In-memory storage (releases lost on server restart)
-- Mock data only for GitHub/Jira (real API connectors are stubbed)
-- Single-user (no auth on the API)
+## Troubleshooting
 
-## Future Work
-
-- Streaming agent output to UI
-- Real GitHub/Jira/Confluence connectors
-- Persistent storage (SQLite)
-- CI/CD integration (GitHub Action on release tags)
-- Support for local LLMs (Ollama)
+| Problem | Fix |
+|---------|-----|
+| `OPENAI_API_KEY not set` | Edit `backend/.env` and confirm the key is present |
+| `ModuleNotFoundError` | Run `source .venv/bin/activate` before starting the server |
+| `Connection refused` on Generate | The backend terminal must still be running |
+| Port 8000 already in use | Kill the other process or set `PORT=8001` in `.env` |
+| Port 3000 already in use | Next.js auto-selects 3001; update `CORS_ORIGINS` in `.env` accordingly |
+| `npm install` hangs | Try `npm install --registry=https://registry.npmjs.org` |
+| Windows: `source` not found | Use `.venv\Scripts\activate` instead |

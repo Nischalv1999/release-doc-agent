@@ -1,47 +1,582 @@
 [
   {
-    "key": "AUTH-1234",
-    "summary": "Implement Okta SSO for enterprise tier",
-    "description": "As an enterprise admin, I want to configure SSO with Okta so that my team can authenticate using our existing identity provider.\n\nAcceptance Criteria:\n- Support OAuth2/OIDC flow with Okta\n- Handle SAML assertions\n- Token exchange for session management\n- Support for multiple Okta organizations",
-    "type": "Story",
-    "status": "Done",
-    "priority": "High",
-    "assignee": "jane.smith",
-    "reporter": "product.manager",
-    "labels": ["enterprise", "sso", "q1-priority"],
-    "created": "2024-03-01T09:00:00Z",
-    "resolved": "2024-03-17T16:00:00Z",
-    "story_points": 8,
-    "epic": "Enterprise Authentication"
+    "id": "98001",
+    "key": "PLAT-2001",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98001",
+    "fields": {
+      "summary": "Platform Modernization - v2.5.0 Epic",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Epic tracking all v2.5.0 platform modernization work. Covers: Stripe integration, WebSocket notifications, database performance, API hardening (rate limiting + security), and removal of deprecated v1 APIs." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Goals" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Support Stripe as a payment processor alongside PayPal" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Deliver real-time notifications via WebSocket to eliminate client polling" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Fix dashboard performance regression for large orgs (PLAT-2015)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Harden API with rate limiting and fix critical security vulnerability (PLAT-2025)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Complete removal of deprecated v1 endpoints and legacy JWT fields" }] }] }
+            ]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "1", "name": "Highest" },
+      "issuetype": { "id": "10000", "name": "Epic", "subtask": false },
+      "assignee": { "displayName": "Priya Kapoor", "emailAddress": "priya.kapoor@company.com", "accountId": "uid-10201" },
+      "reporter": { "displayName": "Director of Engineering", "emailAddress": "engineering-director@company.com", "accountId": "uid-90001" },
+      "labels": ["q1-2024", "platform", "modernization"],
+      "created": "2024-02-15T10:00:00.000+0000",
+      "updated": "2024-03-24T14:00:00.000+0000",
+      "resolutiondate": "2024-03-24T14:00:00.000+0000",
+      "customfield_10016": null,
+      "customfield_10014": null,
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c001", "name": "Platform" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 3, "comments": [
+        { "id": "c001", "author": { "displayName": "Director of Engineering" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Confirmed: all sub-tasks must be done before 2024-03-25 for on-time release." }] }] }, "created": "2024-03-10T09:00:00.000+0000" }
+      ]}
+    }
   },
   {
-    "key": "AUTH-1235",
-    "summary": "Handle encoded parameters in Okta callback URLs",
-    "description": "Bug: When Okta sends callback with URL-encoded parameters (especially with special characters in state param), the auth flow fails with a 400 error.\n\nSteps to reproduce:\n1. Configure SSO with org that has special chars in name\n2. Initiate login flow\n3. Okta callback fails\n\nExpected: Auth flow completes successfully regardless of encoding.",
-    "type": "Bug",
-    "status": "Done",
-    "priority": "Medium",
-    "assignee": "jane.smith",
-    "reporter": "support.engineer",
-    "labels": ["bug", "sso"],
-    "created": "2024-03-14T11:00:00Z",
-    "resolved": "2024-03-16T12:00:00Z",
-    "story_points": 2,
-    "epic": "Enterprise Authentication"
+    "id": "98002",
+    "key": "PLAT-2002",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98002",
+    "fields": {
+      "summary": "Integrate Stripe as payment processor (checkout, subscriptions, webhooks)",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "As a customer, I want to pay via Stripe so I can use cards, Apple Pay, and Google Pay in addition to PayPal." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Acceptance Criteria" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "POST /api/v2/payments/checkout returns a Stripe Checkout Session URL" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Stripe webhooks handled idempotently for checkout.session.completed, payment_intent.succeeded, payment_intent.payment_failed" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Subscription create/cancel/upgrade via Stripe Subscriptions API" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Stripe customer.subscription.updated and .deleted events sync to local DB" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "End-to-end test passes in Stripe test mode" }] }] }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Technical Notes" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Use Stripe SDK v14.x (TypeScript). Webhook secret must be rotated per environment. Idempotency keys required on all Stripe mutation calls. See PLAT-2003 for schema migration." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "2", "name": "High" },
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "assignee": { "displayName": "Priya Kapoor", "emailAddress": "priya.kapoor@company.com", "accountId": "uid-10201" },
+      "reporter": { "displayName": "Head of Product", "emailAddress": "head-of-product@company.com", "accountId": "uid-90002" },
+      "labels": ["payments", "stripe", "q1-2024"],
+      "created": "2024-02-20T09:00:00.000+0000",
+      "updated": "2024-03-20T16:00:00.000+0000",
+      "resolutiondate": "2024-03-20T16:00:00.000+0000",
+      "customfield_10016": 13,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c002", "name": "Payments" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 2, "comments": [
+        { "id": "c002", "author": { "displayName": "Priya Kapoor" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "PR #201 merged. Staging verified with Stripe test mode. Ready for release." }] }] }, "created": "2024-03-20T17:00:00.000+0000" }
+      ]}
+    }
   },
   {
-    "key": "AUTH-1236",
-    "summary": "Support Okta directory sync for user provisioning",
-    "description": "Enterprise customers need automatic user provisioning when they enable Okta directory sync. This should:\n- Implement SCIM 2.0 endpoints\n- Handle create/update/deactivate user events\n- Sync user attributes (name, email, groups)\n- Support incremental sync",
-    "type": "Story",
-    "status": "Done",
-    "priority": "High",
-    "assignee": "bob.jones",
-    "reporter": "product.manager",
-    "labels": ["enterprise", "provisioning", "q1-priority"],
-    "created": "2024-03-05T09:00:00Z",
-    "resolved": "2024-03-17T15:00:00Z",
-    "story_points": 5,
-    "epic": "Enterprise Authentication"
+    "id": "98003",
+    "key": "PLAT-2003",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98003",
+    "fields": {
+      "summary": "Migrate payment/subscription data model to support multiple processors",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "The current payment schema is tightly coupled to PayPal (e.g. paypal_subscription_id column). To support Stripe and future processors, the schema must be generalized." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Acceptance Criteria" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "payments table has processor enum column (stripe | paypal)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "subscriptions.paypal_subscription_id renamed to external_subscription_id" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "subscriptions.processor column added (not null)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Existing PayPal subscriptions backfilled with processor='paypal'" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Down migration script tested and verified" }] }] }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "BREAKING: TypeScript Subscription and Payment interfaces updated. All callers must be updated. API clients reading paypalSubscriptionId must use externalSubscriptionId." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "2", "name": "High" },
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "assignee": { "displayName": "Priya Kapoor", "emailAddress": "priya.kapoor@company.com", "accountId": "uid-10201" },
+      "reporter": { "displayName": "Head of Product", "emailAddress": "head-of-product@company.com", "accountId": "uid-90002" },
+      "labels": ["payments", "database", "breaking-change", "q1-2024"],
+      "created": "2024-02-20T09:30:00.000+0000",
+      "updated": "2024-03-20T16:00:00.000+0000",
+      "resolutiondate": "2024-03-20T16:00:00.000+0000",
+      "customfield_10016": 8,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c002", "name": "Payments" }, { "id": "c003", "name": "Database" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 1, "comments": [] }
+    }
+  },
+  {
+    "id": "98004",
+    "key": "PLAT-2004",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98004",
+    "fields": {
+      "summary": "Payment history API with cursor-based pagination",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "As a customer admin, I want to view a paginated list of all payments so I can reconcile invoices without loading all records at once." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Acceptance Criteria" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "GET /api/v2/payments/history returns paginated results (default page size 20, max 100)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Cursor-based pagination: response includes nextCursor; request accepts after= param" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Filterable by status (pending | succeeded | failed | refunded), processor (stripe | paypal), and date range" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Results ordered by createdAt DESC" }] }] }
+            ]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "3", "name": "Medium" },
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "assignee": { "displayName": "Vikram Nair", "emailAddress": "vikram.nair@company.com", "accountId": "uid-10204" },
+      "reporter": { "displayName": "Head of Product", "emailAddress": "head-of-product@company.com", "accountId": "uid-90002" },
+      "labels": ["payments", "api"],
+      "created": "2024-03-01T09:00:00.000+0000",
+      "updated": "2024-03-20T10:00:00.000+0000",
+      "resolutiondate": "2024-03-20T10:00:00.000+0000",
+      "customfield_10016": 3,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c002", "name": "Payments" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 0, "comments": [] }
+    }
+  },
+  {
+    "id": "98010",
+    "key": "PLAT-2010",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98010",
+    "fields": {
+      "summary": "Real-time WebSocket notification service",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "As a user, I want to receive real-time notifications (payment events, security alerts) so I don't have to refresh the page or wait for email." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Acceptance Criteria" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "WebSocket endpoint at /ws, authenticated via JWT in query string" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Server sends notification events: payment_succeeded, payment_failed, subscription_renewed, subscription_canceled, invoice_generated, security_alert" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Notifications persisted in DB for offline users; delivered on reconnect" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Client SDK with exponential backoff reconnect (max delay 30s)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Load test: 1000 concurrent connections, no memory leak over 30 minutes" }] }] }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Out of Scope" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Push notifications (mobile) are out of scope for this ticket. Email notifications are handled separately." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "2", "name": "High" },
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "assignee": { "displayName": "Marcus Chen", "emailAddress": "marcus.chen@company.com", "accountId": "uid-10207" },
+      "reporter": { "displayName": "Head of Product", "emailAddress": "head-of-product@company.com", "accountId": "uid-90002" },
+      "labels": ["notifications", "websocket", "real-time"],
+      "created": "2024-03-01T10:00:00.000+0000",
+      "updated": "2024-03-21T12:00:00.000+0000",
+      "resolutiondate": "2024-03-21T12:00:00.000+0000",
+      "customfield_10016": 8,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c004", "name": "Notifications" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 1, "comments": [
+        { "id": "c010", "author": { "displayName": "Marcus Chen" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Load test passed: 1000 connections, RSS stable at 380MB after 30min. PR #205 merged." }] }] }, "created": "2024-03-21T12:00:00.000+0000" }
+      ]}
+    }
+  },
+  {
+    "id": "98015",
+    "key": "PLAT-2015",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98015",
+    "fields": {
+      "summary": "Dashboard summary endpoint takes >10s for orgs with 1000+ members",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Reported by customer success: Enterprise org 'Acme Corp' (1,240 members) experiences 12-18 second load times on the dashboard. DataDog shows the /api/v2/dashboard/summary endpoint making 1,241 queries per request." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Root Cause" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "The aggregation code fetches all org members then loops issuing individual COUNT(*) queries per member. This is an N+1 pattern." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Expected Behavior" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Dashboard should load in <500ms for any org size. Single aggregation query." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Steps to Reproduce" }]
+          },
+          {
+            "type": "orderedList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Log in as a user in an org with 1000+ members" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Navigate to Dashboard" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Observe: page load exceeds 10 seconds" }] }] }
+            ]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "2", "name": "High" },
+      "issuetype": { "id": "10004", "name": "Bug", "subtask": false },
+      "assignee": { "displayName": "Aisha Okonkwo", "emailAddress": "aisha.okonkwo@company.com", "accountId": "uid-10210" },
+      "reporter": { "displayName": "Support Engineer", "emailAddress": "support@company.com", "accountId": "uid-90010" },
+      "labels": ["performance", "database", "enterprise", "regression"],
+      "created": "2024-03-10T14:00:00.000+0000",
+      "updated": "2024-03-22T08:00:00.000+0000",
+      "resolutiondate": "2024-03-22T08:00:00.000+0000",
+      "customfield_10016": 5,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c005", "name": "Dashboard" }, { "id": "c003", "name": "Database" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 3, "comments": [
+        { "id": "c015a", "author": { "displayName": "Aisha Okonkwo" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Confirmed N+1. Replacing with single CTE query. Staging: 12,000ms → 95ms for 1,200-member org." }] }] }, "created": "2024-03-21T10:00:00.000+0000" }
+      ]}
+    }
+  },
+  {
+    "id": "98016",
+    "key": "PLAT-2016",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98016",
+    "fields": {
+      "summary": "Add composite indexes to user_events and org_reports for reporting queries",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "The user_events table (~32M rows, growing 500k/day) and org_reports table are doing sequential scans for common dashboard and reporting queries. Composite indexes needed." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Required Indexes" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "user_events(org_id, created_at DESC) — dashboard 30-day range scans" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "user_events(org_id, event_type, created_at DESC) — event-type analytics" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "org_reports(org_id, period_start, period_end) — billing period reports" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "payments(org_id, processor, status, created_at DESC) — billing dashboard" }] }] }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Use CREATE INDEX CONCURRENTLY to avoid table locks in production." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "3", "name": "Medium" },
+      "issuetype": { "id": "10003", "name": "Task", "subtask": false },
+      "assignee": { "displayName": "Aisha Okonkwo", "emailAddress": "aisha.okonkwo@company.com", "accountId": "uid-10210" },
+      "reporter": { "displayName": "Aisha Okonkwo", "emailAddress": "aisha.okonkwo@company.com", "accountId": "uid-10210" },
+      "labels": ["database", "performance"],
+      "created": "2024-03-15T09:00:00.000+0000",
+      "updated": "2024-03-22T08:00:00.000+0000",
+      "resolutiondate": "2024-03-22T08:00:00.000+0000",
+      "customfield_10016": 2,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c003", "name": "Database" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 0, "comments": [] }
+    }
+  },
+  {
+    "id": "98020",
+    "key": "PLAT-2020",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98020",
+    "fields": {
+      "summary": "Implement API rate limiting to prevent abuse and protect backend",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "We've observed abusive request patterns from both unauthenticated scrapers and authenticated bulk-API clients. Rate limiting is needed to protect backend services and ensure fair usage." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Requirements" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Token bucket algorithm (allows short bursts)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Redis-backed for multi-instance correctness; in-memory LRU fallback" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Default limit: 300 req/min per org (authenticated)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Unauthenticated: 30 req/min per IP" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Search endpoint: 60 req/min per org (tighter due to DB cost)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "HTTP 429 with Retry-After header on limit exceeded" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Health check endpoint exempt" }] }] }
+            ]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "2", "name": "High" },
+      "issuetype": { "id": "10001", "name": "Story", "subtask": false },
+      "assignee": { "displayName": "Aisha Okonkwo", "emailAddress": "aisha.okonkwo@company.com", "accountId": "uid-10210" },
+      "reporter": { "displayName": "Head of Engineering", "emailAddress": "head-of-engineering@company.com", "accountId": "uid-90003" },
+      "labels": ["security", "api", "rate-limiting"],
+      "created": "2024-03-05T09:00:00.000+0000",
+      "updated": "2024-03-23T14:00:00.000+0000",
+      "resolutiondate": "2024-03-23T14:00:00.000+0000",
+      "customfield_10016": 5,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c006", "name": "API" }, { "id": "c007", "name": "Security" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 0, "comments": [] }
+    }
+  },
+  {
+    "id": "98025",
+    "key": "PLAT-2025",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98025",
+    "fields": {
+      "summary": "CRITICAL: SQL injection vulnerability in /api/v2/search endpoint (CVE-2024-31337)",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "SECURITY VULNERABILITY — Do not discuss publicly until patched." }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "The GET /api/v2/search endpoint interpolates the 'q' query parameter and 'filters' parameter directly into a raw SQL string using string concatenation. An authenticated attacker can exfiltrate arbitrary row data from the database." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Proof of Concept" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "GET /api/v2/search?q=x%27+UNION+SELECT+email,password_hash,null+FROM+users+--  returns user credentials from other orgs." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "CVE Details" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "CVE: CVE-2024-31337" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "CVSS Score: 9.1 (Critical)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Attack vector: Network, privileges required: Low (authenticated user)" }] }] }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Fix" }]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "Replace db.rawSearch() with ORM parameterized queries. Delete the rawSearch helper entirely. Also upgrade axios (CVE-2024-39338 SSRF) and lodash (CVE-2021-23337 prototype pollution) as part of this fix." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "1", "name": "Highest" },
+      "issuetype": { "id": "10004", "name": "Bug", "subtask": false },
+      "assignee": { "displayName": "Elena Vasquez", "emailAddress": "elena.vasquez@company.com", "accountId": "uid-10215" },
+      "reporter": { "displayName": "Security Team", "emailAddress": "security@company.com", "accountId": "uid-90005" },
+      "labels": ["security", "critical", "cve", "sql-injection"],
+      "created": "2024-03-20T16:00:00.000+0000",
+      "updated": "2024-03-23T14:00:00.000+0000",
+      "resolutiondate": "2024-03-23T14:00:00.000+0000",
+      "customfield_10016": 3,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c006", "name": "API" }, { "id": "c007", "name": "Security" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 2, "comments": [
+        { "id": "c025a", "author": { "displayName": "Elena Vasquez" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Fix implemented and reviewed. Pen test confirms injection no longer possible. Upgrading axios and lodash in same PR." }] }] }, "created": "2024-03-23T10:00:00.000+0000" }
+      ]}
+    }
+  },
+  {
+    "id": "98026",
+    "key": "PLAT-2026",
+    "self": "https://company.atlassian.net/rest/api/3/issue/98026",
+    "fields": {
+      "summary": "Remove deprecated /api/v1/* endpoints and legacy JWT fields",
+      "description": {
+        "type": "doc",
+        "version": 1,
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "The /api/v1/* endpoints were deprecated in v2.3.0 (released 2024-01-10) with a 6-month migration notice. v2.5.0 is the removal release." }]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "Endpoints to Remove" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "GET/POST /api/v1/users (use /api/v2/users)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "GET/POST /api/v1/organizations (use /api/v2/orgs)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "POST /api/v1/auth/login (use /api/v2/auth/token)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "GET /api/v1/billing (use /api/v2/payments/history)" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "All /api/v1/webhooks/* (use /api/v2/webhooks/*)" }] }] }
+            ]
+          },
+          {
+            "type": "heading",
+            "attrs": { "level": 3 },
+            "content": [{ "type": "text", "text": "JWT Changes" }]
+          },
+          {
+            "type": "bulletList",
+            "content": [
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Remove 'legacy_uid' claim (deprecated since v2.0; use 'sub')" }] }] },
+              { "type": "listItem", "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "Add 'jti' (JWT ID) claim for token revocation support" }] }] }
+            ]
+          },
+          {
+            "type": "paragraph",
+            "content": [{ "type": "text", "text": "BREAKING: All existing JWT tokens become invalid after deploy. Coordinate with customer success — users will see a forced login prompt. Also delete src/api/v1/ directory entirely." }]
+          }
+        ]
+      },
+      "status": { "id": "10001", "name": "Done", "statusCategory": { "id": 3, "key": "done", "name": "Done" } },
+      "priority": { "id": "3", "name": "Medium" },
+      "issuetype": { "id": "10003", "name": "Task", "subtask": false },
+      "assignee": { "displayName": "Ben Okafor", "emailAddress": "ben.okafor@company.com", "accountId": "uid-10218" },
+      "reporter": { "displayName": "Head of Engineering", "emailAddress": "head-of-engineering@company.com", "accountId": "uid-90003" },
+      "labels": ["breaking-change", "deprecation", "api", "auth"],
+      "created": "2024-02-15T10:30:00.000+0000",
+      "updated": "2024-03-24T14:00:00.000+0000",
+      "resolutiondate": "2024-03-24T14:00:00.000+0000",
+      "customfield_10016": 5,
+      "customfield_10014": "PLAT-2001",
+      "customfield_10020": { "id": 52, "name": "Sprint 52", "state": "closed" },
+      "components": [{ "id": "c006", "name": "API" }, { "id": "c008", "name": "Auth" }],
+      "fixVersions": [{ "id": "v2.5.0", "name": "v2.5.0", "released": false }],
+      "subtasks": [],
+      "comment": { "total": 2, "comments": [
+        { "id": "c026a", "author": { "displayName": "Ben Okafor" }, "body": { "type": "doc", "version": 1, "content": [{ "type": "paragraph", "content": [{ "type": "text", "text": "PR #212 merged. v1 routes return 404. JWT tokens with legacy_uid are rejected. Customer success team notified about forced re-login." }] }] }, "created": "2024-03-24T14:30:00.000+0000" }
+      ]}
+    }
   }
 ]

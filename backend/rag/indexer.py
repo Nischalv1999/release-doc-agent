@@ -123,8 +123,8 @@ def build_index(
 
     logger.info(f"Produced {len(all_chunks)} chunks, embedding...")
 
-    # Get embeddings with retry
-    texts = [c["content"] for c in all_chunks]
+    # Embed title+heading+content for better recall; "content" stays unchanged for display
+    texts = [c["embed_text"] for c in all_chunks]
     embeddings = _get_embeddings_with_retry(texts, client)
 
     if len(embeddings) != len(all_chunks):
@@ -259,11 +259,13 @@ def _split_by_sections(content: str) -> list[tuple[str, str]]:
 
 def _make_chunk(doc: dict, section_title: str, content: str) -> dict:
     """Create a chunk dictionary with metadata."""
+    doc_title = doc.get("title", "Unknown")
     return {
         "doc_path": doc.get("path", "unknown"),
-        "doc_title": doc.get("title", "Unknown"),
+        "doc_title": doc_title,
         "section": section_title,
         "content": content,
+        "embed_text": f"{doc_title} > {section_title}: {content}",
         "chunk_id": _make_chunk_id(doc.get("path", ""), section_title, content),
     }
 
@@ -274,9 +276,13 @@ def _make_chunk_id(path: str, section: str, content: str) -> str:
     return hashlib.md5(raw.encode("utf-8", errors="replace")).hexdigest()[:12]
 
 
+_EMBED_FORMAT_VERSION = b"v2-title-section-content"
+
+
 def _compute_content_hash(documents: list[dict]) -> str:
     """Compute a hash of all document content for cache invalidation."""
     hasher = hashlib.sha256()
+    hasher.update(_EMBED_FORMAT_VERSION)
     for doc in sorted(documents, key=lambda d: d.get("path", "")):
         hasher.update(doc.get("path", "").encode())
         hasher.update(doc.get("content", "").encode("utf-8", errors="replace"))

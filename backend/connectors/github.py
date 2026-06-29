@@ -59,7 +59,10 @@ class GitHubConnector:
         """
         if self.use_mock:
             prs = self._load_mock("pull_requests.json")
-            if state:
+            if state == "merged":
+                # GitHub API: merged PRs have state="closed" and merged=True
+                prs = [pr for pr in prs if pr.get("merged") is True or pr.get("merged_at")]
+            elif state:
                 prs = [pr for pr in prs if pr.get("state") == state]
             return prs
 

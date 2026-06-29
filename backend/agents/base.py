@@ -142,7 +142,9 @@ def validate_digest_output(result: dict) -> dict:
         "bug_fixes": [],
         "breaking_changes": [],
         "affected_systems": [],
+        "code_insights": [],
         "risk_level": "unknown",
+        "risk_rationale": [],
         "summary": "No summary generated.",
     }
     for key, default in defaults.items():
@@ -154,6 +156,32 @@ def validate_digest_output(result: dict) -> dict:
     valid_risks = {"low", "medium", "high"}
     if result["risk_level"] not in valid_risks:
         result["risk_level"] = "medium"
+
+    if not isinstance(result.get("risk_rationale"), list):
+        val = result.get("risk_rationale")
+        result["risk_rationale"] = [str(val)] if val else []
+
+    # Normalize code_insights to the structured object schema.
+    # Each item must be {filename, change_type, observation, verified}.
+    # Strings (old format or malformed LLM output) are coerced to objects.
+    raw = result.get("code_insights", [])
+    normalized: list[dict] = []
+    for item in (raw if isinstance(raw, list) else []):
+        if isinstance(item, dict):
+            normalized.append({
+                "filename": str(item.get("filename", "unknown")),
+                "change_type": str(item.get("change_type", "modified")),
+                "observation": str(item.get("observation", "")),
+                "verified": bool(item.get("verified", True)),
+            })
+        elif isinstance(item, str) and item:
+            normalized.append({
+                "filename": "unknown",
+                "change_type": "modified",
+                "observation": item,
+                "verified": True,
+            })
+    result["code_insights"] = normalized
 
     return result
 

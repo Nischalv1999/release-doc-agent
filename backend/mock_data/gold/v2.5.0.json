@@ -1,0 +1,41 @@
+{
+  "release_id": "v2.5.0",
+  "description": "Expected doc updates for v2.5.0 platform modernization release",
+  "expected_doc_updates": [
+    {
+      "doc_path": "api-reference.md",
+      "section": "Billing Endpoints",
+      "what_changes": "Replace PayPal references with Stripe; update paypalSubscriptionId to external_subscription_id"
+    },
+    {
+      "doc_path": "api-reference.md",
+      "section": "Authentication Endpoints",
+      "what_changes": "Remove legacy_uid from auth response examples (deprecated in PLAT-2026)"
+    },
+    {
+      "doc_path": "auth-guide.md",
+      "section": "JWT Payload Structure",
+      "what_changes": "Remove legacy_uid claim from JWT payload table (PLAT-2026)"
+    },
+    {
+      "doc_path": "auth-guide.md",
+      "section": "Session Persistence",
+      "what_changes": "Update: legacy_uid removed; users may need to re-authenticate if integrations rely on that claim"
+    },
+    {
+      "doc_path": "onboarding.md",
+      "section": "Set Up Billing",
+      "what_changes": "Replace PayPal with Stripe; update paypalSubscriptionId to external_subscription_id"
+    },
+    {
+      "doc_path": "onboarding.md",
+      "section": "Real-time Notifications",
+      "what_changes": "New section: real-time WebSocket notifications now available (replaces polling)"
+    }
+  ],
+  "expected_tickets_covered": [
+    "PLAT-2001", "PLAT-2002", "PLAT-2003", "PLAT-2004",
+    "PLAT-2010", "PLAT-2015", "PLAT-2016", "PLAT-2020",
+    "PLAT-2025", "PLAT-2026"
+  ]
+}

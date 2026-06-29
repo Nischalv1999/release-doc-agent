@@ -36,7 +36,7 @@ from agents.base import AgentError
 from agents import digester, planner, writer, reviewer
 from rag.indexer import build_index, clear_index
 from rag.retriever import retrieve
-from evaluation.evaluator import evaluate
+from evaluation.evaluator import evaluate, NEEDS_REVISION_THRESHOLD
 
 load_dotenv()
 
@@ -221,14 +221,24 @@ def generate_release(request: GenerateRequest):
         # Stage 4: Planner Agent
         plan_result = planner.plan(
             digest_result, existing_docs, client,
+            tickets=tickets,
             max_retries=openai_config.max_retries,
         )
         logger.info(f"Plan complete: {len(plan_result.get('doc_update_plan', []))} doc updates planned")
 
-        # Stage 5: RAG Retrieval
-        query = _build_rag_query(digest_result)
-        relevant_chunks = retrieve(query, client, top_k=5, documents=existing_docs)
-        logger.info(f"Retrieved {len(relevant_chunks)} relevant chunks")
+        # Stage 5: RAG Retrieval — multi-query via Planner or fallback to single query
+        rag_queries = plan_result.get("rag_search_queries", [])
+        if rag_queries:
+            relevant_chunks = retrieve(
+                rag_queries, client, top_k=10, documents=existing_docs
+            )
+            logger.info(
+                f"Retrieved {len(relevant_chunks)} chunks via {len(rag_queries)} planner queries (MMR)"
+            )
+        else:
+            query = _build_rag_query(digest_result)
+            relevant_chunks = retrieve(query, client, top_k=5, documents=existing_docs)
+            logger.info(f"Retrieved {len(relevant_chunks)} chunks (fallback query)")
 
         # Stage 6: Writer Agent
         relevant_docs_for_writer = [
@@ -237,14 +247,16 @@ def generate_release(request: GenerateRequest):
         ]
         write_result = writer.write(
             digest_result, plan_result, relevant_docs_for_writer, client,
+            source_artifacts={"pull_requests": pull_requests, "tickets": tickets},
             max_retries=openai_config.max_retries,
         )
         logger.info("Writer complete")
 
         # Stage 7: Reviewer Agent
-        original_artifacts = {"tickets": tickets, "pull_requests": pull_requests}
+        original_artifacts = {"tickets": tickets, "pull_requests": pull_requests, "commits": commits}
         review_result = reviewer.review(
             write_result, digest_result, original_artifacts, client,
+            plan=plan_result,
             max_retries=openai_config.max_retries,
         )
         logger.info(
@@ -253,12 +265,23 @@ def generate_release(request: GenerateRequest):
         )
 
         # Stage 8: Evaluation
-        eval_result = evaluate(write_result, review_result, tickets, existing_docs)
+        eval_result = evaluate(
+            write_result,
+            review_result,
+            tickets,
+            existing_docs,
+            source_artifacts=original_artifacts,
+            client=client,
+            plan=plan_result,
+            release_name=request.release_name,
+        )
 
-        # Determine status
-        status = "approved" if review_result.get("approved") else "review"
-        if eval_result.overall_score < 0.5:
+        # "needs_revision" when any critical gate fired OR score is below threshold.
+        # Critical gates (fabricated identifiers, security leaks) override any averaged score.
+        if eval_result.force_needs_revision or eval_result.overall_score < NEEDS_REVISION_THRESHOLD:
             status = "needs_revision"
+        else:
+            status = "review"
 
         duration_ms = int((time.time() - start_time) * 1000)
         logger.info(

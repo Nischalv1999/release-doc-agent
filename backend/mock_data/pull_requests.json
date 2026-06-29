@@ -1,33 +1,273 @@
 [
   {
-    "id": 142,
-    "title": "Enterprise SSO: Okta Integration",
-    "description": "Implements full Okta SSO integration for enterprise customers.\n\n## Changes\n- Added Okta OAuth2/OIDC flow\n- SAML assertion validation\n- Token exchange mechanism\n- Callback URL handling with edge case fixes\n\n## Testing\n- Unit tests for all auth components\n- Integration test for full SSO flow\n- Manual testing with Okta developer account\n\n## Related\n- Jira: AUTH-1234\n- Jira: AUTH-1235",
-    "author": "jane.smith",
-    "state": "merged",
-    "created_at": "2024-03-15T10:00:00Z",
-    "merged_at": "2024-03-17T16:00:00Z",
-    "commits": ["a1b2c3d", "d4e5f6g", "l0m1n2o", "t6u7v8w"],
-    "labels": ["feature", "auth", "enterprise"],
-    "reviewers": ["bob.jones", "alice.chen"],
-    "comments": [
-      {"author": "alice.chen", "body": "Looks good overall. Consider adding rate limiting on the callback endpoint."},
-      {"author": "bob.jones", "body": "LGTM. Nice edge case handling."}
-    ]
+    "url": "https://api.github.com/repos/company/platform/pulls/201",
+    "id": 1890034201,
+    "number": 201,
+    "state": "closed",
+    "locked": false,
+    "title": "feat: Stripe payment processor integration",
+    "user": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "body": "## Summary\n\nIntegrates Stripe as a full payment processor alongside the existing PayPal integration. This is the foundation for the payment modernization work in PLAT-2001.\n\n## Changes\n\n### New files\n- `src/payments/stripe-client.ts` — singleton Stripe client with idempotency key utils\n- `src/api/v2/payments/checkout.ts` — POST /api/v2/payments/checkout creates Stripe Checkout Sessions\n- `src/api/v2/webhooks/stripe.ts` — handles `checkout.session.completed`, `payment_intent.*`, `customer.subscription.*` events with idempotent deduplication\n- `src/payments/subscriptions.ts` — createSubscription, cancelSubscription wrapping Stripe Subscriptions API\n- `migrations/20240319_001_payment_multiprocessor.sql` — **BREAKING** schema migration\n\n### Breaking change\nThe `payments` and `subscriptions` tables are restructured to support multiple processors. See migration SQL.\n- `Subscription.paypalSubscriptionId` → `externalSubscriptionId`\n- `Subscription.processor` column added (required)\n- `Payment.processor` column added (required, backfill = 'paypal')\n\n## Test plan\n- [x] Unit tests for stripe-client, checkout, webhook handler\n- [x] Integration test with Stripe test mode against staging database\n- [x] Manual end-to-end: checkout → Stripe webhook → subscription active\n- [x] Rollback tested: migration down script verified\n\n## Related\n- Jira: PLAT-2002\n- Jira: PLAT-2003\n- Depends on: PLAT-2001 (Epic)",
+    "labels": [
+      { "id": 701, "name": "feature", "color": "0075ca" },
+      { "id": 702, "name": "payments", "color": "e4e669" },
+      { "id": 703, "name": "breaking-change", "color": "d73a4a" },
+      { "id": 704, "name": "needs-migration", "color": "f9a825" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-18T08:00:00Z",
+    "updated_at": "2024-03-20T16:00:00Z",
+    "closed_at": "2024-03-20T16:00:00Z",
+    "merged_at": "2024-03-20T16:00:00Z",
+    "merge_commit_sha": "f5c8a1d4b7e0c3f6a9d2b5e8c1f4a7d0e3b6c9",
+    "assignees": [{ "login": "priya-kapoor", "id": 10201 }],
+    "requested_reviewers": [
+      { "login": "ben-okafor", "id": 10218 },
+      { "login": "elena-vasquez", "id": 10215 }
+    ],
+    "head": {
+      "sha": "f5c8a1d4b7e0c3f6a9d2b5e8c1f4a7d0e3b6c9",
+      "ref": "feat/stripe-integration",
+      "repo": { "full_name": "company/payment-service" }
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000001",
+      "ref": "main",
+      "repo": { "full_name": "company/payment-service" }
+    },
+    "merged": true,
+    "merged_by": { "login": "ben-okafor", "id": 10218 },
+    "comments": 8,
+    "review_comments": 14,
+    "commits": 5,
+    "additions": 896,
+    "deletions": 115,
+    "changed_files": 12,
+    "jira_tickets": ["PLAT-2002", "PLAT-2003", "PLAT-2001"]
   },
   {
-    "id": 143,
-    "title": "User Provisioning via Okta Directory Sync",
-    "description": "Adds support for automatic user provisioning when organizations enable Okta directory sync.\n\n## Changes\n- SCIM 2.0 endpoint for user provisioning\n- Directory sync webhook handler\n- User model updates for SSO-linked accounts\n\n## Related\n- Jira: AUTH-1236",
-    "author": "bob.jones",
-    "state": "merged",
-    "created_at": "2024-03-16T08:00:00Z",
-    "merged_at": "2024-03-17T15:00:00Z",
-    "commits": ["h7i8j9k", "p3q4r5s", "x9y0z1a"],
-    "labels": ["feature", "users", "enterprise"],
-    "reviewers": ["jane.smith"],
-    "comments": [
-      {"author": "jane.smith", "body": "Should we handle deprovisioning as well? Maybe a follow-up ticket."}
-    ]
+    "url": "https://api.github.com/repos/company/platform/pulls/202",
+    "id": 1890034202,
+    "number": 202,
+    "state": "closed",
+    "locked": false,
+    "title": "feat: payment history API with cursor-based pagination",
+    "user": { "login": "vikram-nair", "id": 10204, "type": "User" },
+    "body": "## Summary\n\nAdds `GET /api/v2/payments/history` endpoint for retrieving paginated payment records.\n\n## Changes\n- `src/api/v2/payments/history.ts` — new endpoint\n- Supports cursor-based pagination via `after` query param\n- Filter by status, processor, and date range\n- Wired into payments router\n\n## API\n```\nGET /api/v2/payments/history?limit=20&after=<cursor>&status=succeeded&processor=stripe\n\nResponse:\n{\n  data: Payment[],\n  pagination: { hasMore: boolean, nextCursor: string | null }\n}\n```\n\n## Test plan\n- [x] Unit tests for pagination logic\n- [x] Manual testing with both stripe and paypal records\n\n## Related\n- Jira: PLAT-2004",
+    "labels": [
+      { "id": 701, "name": "feature", "color": "0075ca" },
+      { "id": 702, "name": "payments", "color": "e4e669" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-19T15:00:00Z",
+    "updated_at": "2024-03-20T10:00:00Z",
+    "closed_at": "2024-03-20T10:00:00Z",
+    "merged_at": "2024-03-20T10:00:00Z",
+    "merge_commit_sha": "b1d4f7a0c3e6b9d2f5a8c1e4b7d0a3f6c9b2e5",
+    "assignees": [{ "login": "vikram-nair", "id": 10204 }],
+    "requested_reviewers": [{ "login": "priya-kapoor", "id": 10201 }],
+    "head": {
+      "sha": "b1d4f7a0c3e6b9d2f5a8c1e4b7d0a3f6c9b2e5",
+      "ref": "feat/payment-history-api",
+      "repo": { "full_name": "company/payment-service" }
+    },
+    "base": {
+      "sha": "f5c8a1d4b7e0c3f6a9d2b5e8c1f4a7d0e3b6c9",
+      "ref": "main",
+      "repo": { "full_name": "company/payment-service" }
+    },
+    "merged": true,
+    "merged_by": { "login": "priya-kapoor", "id": 10201 },
+    "comments": 3,
+    "review_comments": 5,
+    "commits": 1,
+    "additions": 112,
+    "deletions": 5,
+    "changed_files": 2,
+    "jira_tickets": ["PLAT-2004"]
+  },
+  {
+    "url": "https://api.github.com/repos/company/platform/pulls/205",
+    "id": 1890034205,
+    "number": 205,
+    "state": "closed",
+    "locked": false,
+    "title": "feat: real-time WebSocket notification service",
+    "user": { "login": "marcus-chen", "id": 10207, "type": "User" },
+    "body": "## Summary\n\nAdds a WebSocket-based notification service so users receive live events without polling.\n\n## Architecture\n- Server-side: `ws` library WebSocket server mounted at `/ws`, attached to the existing HTTP server\n- Authentication: JWT extracted from WS upgrade request `?token=` query param\n- Connection registry: in-memory `Map<userId, Set<WebSocket>>` for targeted delivery\n- Heartbeat: 30s ping/pong to detect and terminate stale connections\n\n## Notification event types\n- `payment_succeeded` / `payment_failed`\n- `subscription_renewed` / `subscription_canceled`\n- `invoice_generated`\n- `security_alert`\n\n## Client SDK\n`src/client/notifications-sdk.ts` — `NotificationsClient` class with jittered exponential backoff reconnect (max 30s). Compatible with React via EventEmitter interface.\n\n## Changes\n- `src/notifications/ws-server.ts`\n- `src/notifications/types.ts`\n- `src/notifications/handlers.ts`\n- `src/client/notifications-sdk.ts`\n- `src/server.ts` — attach WS server\n\n## Test plan\n- [x] Unit: connection auth, heartbeat, deregister on close\n- [x] Unit: delivery to multi-connection users\n- [x] Integration: send notification, assert client receives within 200ms\n- [x] Load test: 1000 concurrent connections on staging — no memory leak after 30min\n\n## Related\n- Jira: PLAT-2010",
+    "labels": [
+      { "id": 701, "name": "feature", "color": "0075ca" },
+      { "id": 705, "name": "notifications", "color": "bfd4f2" },
+      { "id": 706, "name": "websocket", "color": "c5def5" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-20T08:00:00Z",
+    "updated_at": "2024-03-21T12:00:00Z",
+    "closed_at": "2024-03-21T12:00:00Z",
+    "merged_at": "2024-03-21T12:00:00Z",
+    "merge_commit_sha": "c4e7a0d3f6c9b2e5a8d1f4b7e0c3a6d9f2b5e8",
+    "assignees": [{ "login": "marcus-chen", "id": 10207 }],
+    "requested_reviewers": [
+      { "login": "ben-okafor", "id": 10218 },
+      { "login": "aisha-okonkwo", "id": 10210 }
+    ],
+    "head": {
+      "sha": "c4e7a0d3f6c9b2e5a8d1f4b7e0c3a6d9f2b5e8",
+      "ref": "feat/websocket-notifications",
+      "repo": { "full_name": "company/notification-service" }
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000002",
+      "ref": "main",
+      "repo": { "full_name": "company/notification-service" }
+    },
+    "merged": true,
+    "merged_by": { "login": "aisha-okonkwo", "id": 10210 },
+    "comments": 5,
+    "review_comments": 11,
+    "commits": 3,
+    "additions": 478,
+    "deletions": 23,
+    "changed_files": 5,
+    "jira_tickets": ["PLAT-2010"]
+  },
+  {
+    "url": "https://api.github.com/repos/company/platform/pulls/208",
+    "id": 1890034208,
+    "number": 208,
+    "state": "closed",
+    "locked": false,
+    "title": "perf: database query optimizations for dashboard and reporting",
+    "user": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "body": "## Summary\n\nFixes the root cause of PLAT-2015 (dashboard loading >10s for large orgs) and adds preventative indexes from PLAT-2016.\n\n## Root Cause\nThe `/api/v2/dashboard/summary` endpoint was executing 1 + N queries (N = org member count). For orgs with 1000+ users this caused 1000+ individual `COUNT(*)` queries, taking 10–20 seconds total.\n\n## Fix (PLAT-2015)\nReplaced N+1 loop with a single raw SQL CTE that aggregates all counts in one pass. Query time in staging: **12,000ms → 95ms** for a 1,200-member org.\n\n## Indexes (PLAT-2016)\nAdded composite indexes on `user_events` and `org_reports` tables:\n- `idx_user_events_org_created` — for 30-day time-range dashboard queries\n- `idx_user_events_org_type_created` — for event-type analytics\n- `idx_org_reports_org_period` — for billing period reports\n- `idx_payments_org_processor_status` — for billing dashboard filters\n\nAll created with `CONCURRENTLY` to avoid locking production tables.\n\n## Test plan\n- [x] Verified query plan with EXPLAIN ANALYZE in staging (seq scan → index scan)\n- [x] Load test: 50 concurrent dashboard requests, p99 < 200ms\n- [x] No regression on orgs with <10 members\n\n## Related\n- Jira: PLAT-2015\n- Jira: PLAT-2016",
+    "labels": [
+      { "id": 707, "name": "performance", "color": "0e8a16" },
+      { "id": 708, "name": "database", "color": "e4e669" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-21T08:00:00Z",
+    "updated_at": "2024-03-22T08:00:00Z",
+    "closed_at": "2024-03-22T08:00:00Z",
+    "merged_at": "2024-03-22T08:00:00Z",
+    "merge_commit_sha": "f0c3d6a9e2b5c8f1a4d7e0b3c6f9a2d5b8e1c4",
+    "assignees": [{ "login": "aisha-okonkwo", "id": 10210 }],
+    "requested_reviewers": [
+      { "login": "priya-kapoor", "id": 10201 },
+      { "login": "vikram-nair", "id": 10204 }
+    ],
+    "head": {
+      "sha": "f0c3d6a9e2b5c8f1a4d7e0b3c6f9a2d5b8e1c4",
+      "ref": "perf/db-query-optimization",
+      "repo": { "full_name": "company/platform" }
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000003",
+      "ref": "main",
+      "repo": { "full_name": "company/platform" }
+    },
+    "merged": true,
+    "merged_by": { "login": "vikram-nair", "id": 10204 },
+    "comments": 4,
+    "review_comments": 7,
+    "commits": 2,
+    "additions": 129,
+    "deletions": 35,
+    "changed_files": 3,
+    "jira_tickets": ["PLAT-2015", "PLAT-2016"]
+  },
+  {
+    "url": "https://api.github.com/repos/company/platform/pulls/210",
+    "id": 1890034210,
+    "number": 210,
+    "state": "closed",
+    "locked": false,
+    "title": "feat+fix: API rate limiting and critical security patches",
+    "user": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "body": "## Summary\n\nCombines two related security/stability improvements:\n1. **Rate limiting** (PLAT-2020): prevents API abuse\n2. **SQL injection fix** (PLAT-2025): critical CVE patch\n\n⚠️ **This PR includes a CRITICAL security fix. Review and merge priority is HIGH.**\n\n## Rate Limiting (PLAT-2020)\nToken-bucket rate limiter middleware with Redis backing and in-memory LRU fallback.\n\nLimits:\n- Global authenticated: 300 req/min per org\n- Unauthenticated: 30 req/min per IP  \n- Search endpoint: 60 req/min per org\n- Stripe webhooks: 500 req/min (generous for retries)\n\nReturns `429 Too Many Requests` with `Retry-After` header.\n\n## SQL Injection Fix (PLAT-2025) — CVE-2024-31337, CVSS 9.1\n\nThe `/api/v2/search` endpoint was directly interpolating `req.query.q` into a raw SQL string. An authenticated attacker could exfiltrate arbitrary org data.\n\n**Fix:** Replaced `db.rawSearch()` with ORM-based parameterized queries. The `rawSearch` helper is deleted entirely.\n\n**BREAKING:** Search result ordering changed slightly. Wildcard `%` characters in query strings now treated as literals (was a security vulnerability, not a feature).\n\nAlso upgraded axios (CVE-2024-39338) and lodash (CVE-2021-23337).\n\n## Test plan\n- [x] Rate limit: verified 429 returned after burst, Retry-After header present\n- [x] SQL injection: confirmed parameterized queries in EXPLAIN output\n- [x] Penetration test: attempted injection payloads all rejected\n- [x] Regression: search results consistent for normal queries\n\n## Related\n- Jira: PLAT-2020\n- Jira: PLAT-2025",
+    "labels": [
+      { "id": 701, "name": "feature", "color": "0075ca" },
+      { "id": 709, "name": "security", "color": "d73a4a" },
+      { "id": 703, "name": "breaking-change", "color": "d73a4a" },
+      { "id": 710, "name": "critical", "color": "b60205" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-22T08:00:00Z",
+    "updated_at": "2024-03-23T14:00:00Z",
+    "closed_at": "2024-03-23T14:00:00Z",
+    "merged_at": "2024-03-23T14:00:00Z",
+    "merge_commit_sha": "6b9f2c5e8a1d4b7e0c3f6d9b2e5a8c1f4d7a0",
+    "assignees": [
+      { "login": "aisha-okonkwo", "id": 10210 },
+      { "login": "elena-vasquez", "id": 10215 }
+    ],
+    "requested_reviewers": [
+      { "login": "ben-okafor", "id": 10218 },
+      { "login": "priya-kapoor", "id": 10201 },
+      { "login": "marcus-chen", "id": 10207 }
+    ],
+    "head": {
+      "sha": "6b9f2c5e8a1d4b7e0c3f6d9b2e5a8c1f4d7a0",
+      "ref": "feat/rate-limiting-and-security-patches",
+      "repo": { "full_name": "company/platform" }
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000004",
+      "ref": "main",
+      "repo": { "full_name": "company/platform" }
+    },
+    "merged": true,
+    "merged_by": { "login": "ben-okafor", "id": 10218 },
+    "comments": 12,
+    "review_comments": 22,
+    "commits": 4,
+    "additions": 346,
+    "deletions": 80,
+    "changed_files": 9,
+    "jira_tickets": ["PLAT-2020", "PLAT-2025"]
+  },
+  {
+    "url": "https://api.github.com/repos/company/platform/pulls/212",
+    "id": 1890034212,
+    "number": 212,
+    "state": "closed",
+    "locked": false,
+    "title": "feat!: remove deprecated v1 API endpoints and modernize JWT structure",
+    "user": { "login": "ben-okafor", "id": 10218, "type": "User" },
+    "body": "## Summary\n\nCleans up two long-standing deprecations announced in v2.3.0 (released 2024-01-10):\n1. **Remove /api/v1/* endpoints** — migration window was 6 months; v2.5.0 is the cutoff\n2. **JWT payload modernization** — remove `legacy_uid`, add `jti` for token revocation\n\n## BREAKING CHANGES\n\n### /api/v1/* Removal (PLAT-2026)\nAll v1 endpoints have been removed:\n- `GET/POST /api/v1/users` → use `/api/v2/users`\n- `GET/POST /api/v1/organizations` → use `/api/v2/orgs`\n- `POST /api/v1/auth/login` → use `/api/v2/auth/token`\n- `GET /api/v1/billing` → use `/api/v2/payments/history`\n- All `/api/v1/webhooks/*` → use `/api/v2/webhooks/*`\n\nSee migration guide: `docs/migrations/v1-to-v2.md`\n\n### JWT payload change (PLAT-2026)\n- `legacy_uid` field **removed** (was deprecated since v2.0; identical to `sub`)\n- `jti` claim **added** (UUID, enables server-side token revocation)\n- All existing JWT tokens become invalid after deploy. **Users must re-authenticate.**\n\n⚠️ Coordinate deploy with customer success team — a login prompt will appear for all active sessions.\n\n## Test plan\n- [x] All v1 routes return 404 after removal\n- [x] JWT tokens with `legacy_uid` rejected by new middleware\n- [x] New tokens contain `jti` and validate correctly\n- [x] Token revocation flow works end-to-end\n\n## Related\n- Jira: PLAT-2026",
+    "labels": [
+      { "id": 703, "name": "breaking-change", "color": "d73a4a" },
+      { "id": 711, "name": "deprecation-removal", "color": "e4e669" },
+      { "id": 712, "name": "auth", "color": "c5def5" }
+    ],
+    "milestone": { "title": "v2.5.0", "number": 12 },
+    "created_at": "2024-03-24T08:00:00Z",
+    "updated_at": "2024-03-24T14:00:00Z",
+    "closed_at": "2024-03-24T14:00:00Z",
+    "merged_at": "2024-03-24T14:00:00Z",
+    "merge_commit_sha": "a3d6f9b2e5c8a1d4f7e0b3c6a9f2d5e8b1c4f7",
+    "assignees": [{ "login": "ben-okafor", "id": 10218 }],
+    "requested_reviewers": [
+      { "login": "elena-vasquez", "id": 10215 },
+      { "login": "aisha-okonkwo", "id": 10210 }
+    ],
+    "head": {
+      "sha": "a3d6f9b2e5c8a1d4f7e0b3c6a9f2d5e8b1c4f7",
+      "ref": "feat/remove-v1-modernize-jwt",
+      "repo": { "full_name": "company/platform" }
+    },
+    "base": {
+      "sha": "0000000000000000000000000000000000000005",
+      "ref": "main",
+      "repo": { "full_name": "company/platform" }
+    },
+    "merged": true,
+    "merged_by": { "login": "elena-vasquez", "id": 10215 },
+    "comments": 6,
+    "review_comments": 9,
+    "commits": 3,
+    "additions": 331,
+    "deletions": 526,
+    "changed_files": 9,
+    "jira_tickets": ["PLAT-2026"]
   }
 ]

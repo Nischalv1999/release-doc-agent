@@ -1,65 +1,554 @@
 [
   {
-    "sha": "a1b2c3d",
-    "message": "feat(auth): implement Okta SSO integration for enterprise customers",
-    "author": "jane.smith",
-    "date": "2024-03-15T10:30:00Z",
-    "files_changed": ["src/auth/okta.ts", "src/auth/sso-handler.ts", "src/config/auth.ts"],
-    "additions": 342,
-    "deletions": 12
+    "sha": "3f8a1c2e9b4d7f0e2a5c8d1b3e6f9a2c5d8b1e4",
+    "commit": {
+      "author": { "name": "Priya Kapoor", "email": "priya.kapoor@company.com", "date": "2024-03-18T09:12:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-18T09:12:00Z" },
+      "message": "feat(payments): add Stripe SDK and initialize payment client\n\nBootstrap the Stripe integration by adding the official Node.js SDK\nand creating a singleton payment client with proper config/env handling.\nIncludes idempotency key generation utility.\n\nCloses PLAT-2002",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/3f8a1c2e9b4d7f0e2a5c8d1b3e6f9a2c5d8b1e4",
+    "author": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 89, "additions": 84, "deletions": 5 },
+    "files": [
+      {
+        "filename": "src/payments/stripe-client.ts",
+        "status": "added",
+        "additions": 62,
+        "deletions": 0,
+        "changes": 62,
+        "patch": "@@ -0,0 +1,62 @@\n+import Stripe from 'stripe';\n+import { config } from '../config';\n+import { logger } from '../logger';\n+import { v4 as uuidv4 } from 'uuid';\n+\n+let stripeInstance: Stripe | null = null;\n+\n+export function getStripeClient(): Stripe {\n+  if (!stripeInstance) {\n+    if (!config.stripe.secretKey) {\n+      throw new Error('STRIPE_SECRET_KEY is not configured');\n+    }\n+    stripeInstance = new Stripe(config.stripe.secretKey, {\n+      apiVersion: '2024-02-29',\n+      maxNetworkRetries: 3,\n+      timeout: 10000,\n+    });\n+    logger.info('Stripe client initialized', { apiVersion: '2024-02-29' });\n+  }\n+  return stripeInstance;\n+}\n+\n+export function generateIdempotencyKey(prefix: string): string {\n+  return `${prefix}_${uuidv4()}`;\n+}\n+\n+export async function validateStripeWebhookSignature(\n+  payload: Buffer,\n+  signature: string\n+): Promise<Stripe.Event> {\n+  const stripe = getStripeClient();\n+  const webhookSecret = config.stripe.webhookSecret;\n+  if (!webhookSecret) {\n+    throw new Error('STRIPE_WEBHOOK_SECRET is not configured');\n+  }\n+  return stripe.webhooks.constructEventAsync(payload, signature, webhookSecret);\n+}"
+      },
+      {
+        "filename": "package.json",
+        "status": "modified",
+        "additions": 2,
+        "deletions": 1,
+        "changes": 3,
+        "patch": "@@ -14,7 +14,8 @@\n   \"dependencies\": {\n     \"@types/node\": \"^20.0.0\",\n     \"express\": \"^4.18.2\",\n+    \"stripe\": \"^14.21.0\",\n+    \"uuid\": \"^9.0.1\",\n-    \"uuid\": \"^8.3.2\"\n   }"
+      },
+      {
+        "filename": "src/config/index.ts",
+        "status": "modified",
+        "additions": 10,
+        "deletions": 2,
+        "changes": 12,
+        "patch": "@@ -22,6 +22,14 @@\n export const config = {\n   database: {\n     url: process.env.DATABASE_URL!,\n   },\n+  stripe: {\n+    secretKey: process.env.STRIPE_SECRET_KEY || '',\n+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',\n+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',\n+    priceIds: {\n+      starter: process.env.STRIPE_PRICE_STARTER || '',\n+      pro: process.env.STRIPE_PRICE_PRO || '',\n+      enterprise: process.env.STRIPE_PRICE_ENTERPRISE || '',\n+    },\n+  },\n   auth: {"
+      }
+    ]
   },
   {
-    "sha": "d4e5f6g",
-    "message": "feat(auth): add SAML assertion validation and token exchange",
-    "author": "jane.smith",
-    "date": "2024-03-15T14:20:00Z",
-    "files_changed": ["src/auth/saml-validator.ts", "src/auth/token-exchange.ts"],
-    "additions": 198,
-    "deletions": 5
+    "sha": "7c2d5e8a1b4f0c3d6e9a2b5f8c1d4e7a0b3c6d9",
+    "commit": {
+      "author": { "name": "Priya Kapoor", "email": "priya.kapoor@company.com", "date": "2024-03-18T11:45:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-18T11:45:00Z" },
+      "message": "feat(payments): implement Stripe checkout session creation\n\nAdd POST /api/v2/payments/checkout endpoint that creates a Stripe\nCheckout Session and returns the redirect URL. Supports one-time\npayments and subscription initiation.\n\nCloses PLAT-2002",
+      "comment_count": 2,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/7c2d5e8a1b4f0c3d6e9a2b5f8c1d4e7a0b3c6d9",
+    "author": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 134, "additions": 127, "deletions": 7 },
+    "files": [
+      {
+        "filename": "src/api/v2/payments/checkout.ts",
+        "status": "added",
+        "additions": 98,
+        "deletions": 0,
+        "changes": 98,
+        "patch": "@@ -0,0 +1,98 @@\n+import { Router, Request, Response } from 'express';\n+import { getStripeClient, generateIdempotencyKey } from '../../../payments/stripe-client';\n+import { requireAuth } from '../../../middleware/auth';\n+import { validateBody } from '../../../middleware/validate';\n+import { z } from 'zod';\n+\n+export const checkoutRouter = Router();\n+\n+const CheckoutSchema = z.object({\n+  priceId: z.string().startsWith('price_'),\n+  successUrl: z.string().url(),\n+  cancelUrl: z.string().url(),\n+  quantity: z.number().int().positive().default(1),\n+  metadata: z.record(z.string()).optional(),\n+});\n+\n+checkoutRouter.post('/', requireAuth, validateBody(CheckoutSchema), async (req: Request, res: Response) => {\n+  const { priceId, successUrl, cancelUrl, quantity, metadata } = req.body;\n+  const userId = req.user!.id;\n+  const orgId = req.user!.organizationId;\n+\n+  try {\n+    const stripe = getStripeClient();\n+    const idempotencyKey = generateIdempotencyKey(`checkout_${orgId}`);\n+\n+    const session = await stripe.checkout.sessions.create({\n+      customer_email: req.user!.email,\n+      line_items: [{ price: priceId, quantity }],\n+      mode: priceId.includes('subscription') ? 'subscription' : 'payment',\n+      success_url: successUrl,\n+      cancel_url: cancelUrl,\n+      metadata: { userId, orgId, ...metadata },\n+      payment_method_types: ['card'],\n+      allow_promotion_codes: true,\n+    }, { idempotencyKey });\n+\n+    res.json({ sessionId: session.id, url: session.url });\n+  } catch (err: any) {\n+    if (err.type === 'StripeInvalidRequestError') {\n+      return res.status(400).json({ error: err.message });\n+    }\n+    throw err;\n+  }\n+});"
+      },
+      {
+        "filename": "src/api/v2/payments/index.ts",
+        "status": "modified",
+        "additions": 4,
+        "deletions": 1,
+        "changes": 5,
+        "patch": "@@ -1,5 +1,8 @@\n import { Router } from 'express';\n+import { checkoutRouter } from './checkout';\n \n export const paymentsRouter = Router();\n \n+paymentsRouter.use('/checkout', checkoutRouter);"
+      }
+    ]
   },
   {
-    "sha": "h7i8j9k",
-    "message": "feat(users): support provisioning users from Okta directory sync",
-    "author": "bob.jones",
-    "date": "2024-03-16T09:15:00Z",
-    "files_changed": ["src/users/provisioning.ts", "src/users/directory-sync.ts", "src/users/models.ts"],
-    "additions": 267,
-    "deletions": 34
+    "sha": "a9e3f6b2c5d8e1a4b7c0d3e6f9a2b5c8d1e4f7",
+    "commit": {
+      "author": { "name": "Priya Kapoor", "email": "priya.kapoor@company.com", "date": "2024-03-18T14:20:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-18T14:20:00Z" },
+      "message": "feat(payments): add Stripe webhook handler for payment lifecycle events\n\nHandle Stripe async events: checkout.session.completed,\npayment_intent.succeeded, payment_intent.payment_failed,\ncustomer.subscription.updated, customer.subscription.deleted.\n\nAll handlers are idempotent via database event deduplication.\n\nCloses PLAT-2002",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/a9e3f6b2c5d8e1a4b7c0d3e6f9a2b5c8d1e4f7",
+    "author": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 182, "additions": 175, "deletions": 7 },
+    "files": [
+      {
+        "filename": "src/api/v2/webhooks/stripe.ts",
+        "status": "added",
+        "additions": 145,
+        "deletions": 0,
+        "changes": 145,
+        "patch": "@@ -0,0 +1,145 @@\n+import { Router, Request, Response } from 'express';\n+import Stripe from 'stripe';\n+import { validateStripeWebhookSignature } from '../../../payments/stripe-client';\n+import { db } from '../../../db';\n+import { logger } from '../../../logger';\n+\n+export const stripeWebhookRouter = Router();\n+\n+stripeWebhookRouter.post(\n+  '/',\n+  express.raw({ type: 'application/json' }),\n+  async (req: Request, res: Response) => {\n+    const signature = req.headers['stripe-signature'] as string;\n+    let event: Stripe.Event;\n+\n+    try {\n+      event = await validateStripeWebhookSignature(req.body, signature);\n+    } catch (err) {\n+      logger.warn('Invalid Stripe webhook signature', { err });\n+      return res.status(400).json({ error: 'Invalid signature' });\n+    }\n+\n+    // Idempotency: skip already-processed events\n+    const existing = await db.webhookEvents.findFirst({ where: { stripeEventId: event.id } });\n+    if (existing) {\n+      return res.json({ received: true, duplicate: true });\n+    }\n+\n+    await db.webhookEvents.create({ data: { stripeEventId: event.id, type: event.type } });\n+\n+    switch (event.type) {\n+      case 'checkout.session.completed':\n+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);\n+        break;\n+      case 'payment_intent.succeeded':\n+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);\n+        break;\n+      case 'payment_intent.payment_failed':\n+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);\n+        break;\n+      case 'customer.subscription.updated':\n+        await handleSubscriptionUpdated(event.data.object as Stripe.Subscription);\n+        break;\n+      case 'customer.subscription.deleted':\n+        await handleSubscriptionDeleted(event.data.object as Stripe.Subscription);\n+        break;\n+      default:\n+        logger.debug('Unhandled Stripe webhook event', { type: event.type });\n+    }\n+\n+    res.json({ received: true });\n+  }\n+);"
+      }
+    ]
   },
   {
-    "sha": "l0m1n2o",
-    "message": "fix(auth): handle edge case where Okta callback URL contains encoded params",
-    "author": "jane.smith",
-    "date": "2024-03-16T11:45:00Z",
-    "files_changed": ["src/auth/okta.ts", "tests/auth/okta.test.ts"],
-    "additions": 45,
-    "deletions": 8
+    "sha": "d2b5e8c1f4a7d0e3b6c9f2a5d8b1e4c7f0a3d6",
+    "commit": {
+      "author": { "name": "Priya Kapoor", "email": "priya.kapoor@company.com", "date": "2024-03-19T08:30:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-19T08:30:00Z" },
+      "message": "feat(payments): implement Stripe subscription creation and management\n\nAdd subscription lifecycle management: create, upgrade, downgrade,\ncancel (immediate and end-of-period). Syncs subscription state\nto local database via webhook events.\n\nCloses PLAT-2002",
+      "comment_count": 1,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/d2b5e8c1f4a7d0e3b6c9f2a5d8b1e4c7f0a3d6",
+    "author": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 211, "additions": 203, "deletions": 8 },
+    "files": [
+      {
+        "filename": "src/payments/subscriptions.ts",
+        "status": "added",
+        "additions": 178,
+        "deletions": 0,
+        "changes": 178,
+        "patch": "@@ -0,0 +1,178 @@\n+import Stripe from 'stripe';\n+import { getStripeClient, generateIdempotencyKey } from './stripe-client';\n+import { db } from '../db';\n+\n+export async function createSubscription(params: {\n+  orgId: string;\n+  userId: string;\n+  priceId: string;\n+  trialDays?: number;\n+}): Promise<{ subscriptionId: string; clientSecret?: string }> {\n+  const stripe = getStripeClient();\n+\n+  let customerId = await getOrCreateStripeCustomer(params.orgId);\n+\n+  const subscription = await stripe.subscriptions.create({\n+    customer: customerId,\n+    items: [{ price: params.priceId }],\n+    trial_period_days: params.trialDays,\n+    payment_behavior: 'default_incomplete',\n+    payment_settings: { save_default_payment_method: 'on_subscription' },\n+    expand: ['latest_invoice.payment_intent'],\n+    metadata: { orgId: params.orgId, userId: params.userId },\n+  }, { idempotencyKey: generateIdempotencyKey(`sub_create_${params.orgId}`) });\n+\n+  await db.subscriptions.upsert({\n+    where: { orgId: params.orgId },\n+    create: {\n+      orgId: params.orgId,\n+      stripeSubscriptionId: subscription.id,\n+      stripeCustomerId: customerId,\n+      status: subscription.status,\n+      priceId: params.priceId,\n+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),\n+    },\n+    update: {\n+      stripeSubscriptionId: subscription.id,\n+      status: subscription.status,\n+    },\n+  });\n+\n+  const invoice = subscription.latest_invoice as Stripe.Invoice;\n+  const paymentIntent = invoice?.payment_intent as Stripe.PaymentIntent;\n+\n+  return {\n+    subscriptionId: subscription.id,\n+    clientSecret: paymentIntent?.client_secret ?? undefined,\n+  };\n+}\n+\n+export async function cancelSubscription(\n+  orgId: string,\n+  immediately = false\n+): Promise<void> {\n+  const sub = await db.subscriptions.findFirst({ where: { orgId, status: { not: 'canceled' } } });\n+  if (!sub) throw new Error('No active subscription found');\n+\n+  const stripe = getStripeClient();\n+  await stripe.subscriptions.update(sub.stripeSubscriptionId, {\n+    cancel_at_period_end: !immediately,\n+    ...(immediately ? { cancellation_details: { comment: 'Immediate cancellation requested' } } : {}),\n+  });\n+}"
+      }
+    ]
   },
   {
-    "sha": "p3q4r5s",
-    "message": "chore(config): add SSO environment variables and deployment config",
-    "author": "bob.jones",
-    "date": "2024-03-16T16:00:00Z",
-    "files_changed": ["config/sso.yaml", ".env.example", "deploy/helm/values.yaml"],
-    "additions": 89,
-    "deletions": 3
+    "sha": "f5c8a1d4b7e0c3f6a9d2b5e8c1f4a7d0e3b6c9",
+    "commit": {
+      "author": { "name": "Priya Kapoor", "email": "priya.kapoor@company.com", "date": "2024-03-19T10:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-19T10:00:00Z" },
+      "message": "feat(payments)!: BREAKING - migrate payment data model to support multiple processors\n\nThe payments and subscriptions tables are restructured to support\nmultiple payment processors (currently Stripe, with PayPal legacy support).\n\nBREAKING CHANGES:\n- `Payment.provider` enum now required (was implicit 'paypal')\n- `Subscription.paypalSubscriptionId` column renamed to `externalSubscriptionId`\n- `Subscription.processor` column added (required, no default)\n- Old PayPal-only subscription API endpoints deprecated\n\nMigration script included. Existing subscriptions will be backfilled with processor='paypal'.\n\nCloses PLAT-2003",
+      "comment_count": 3,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/f5c8a1d4b7e0c3f6a9d2b5e8c1f4a7d0e3b6c9",
+    "author": { "login": "priya-kapoor", "id": 10201, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 289, "additions": 201, "deletions": 88 },
+    "files": [
+      {
+        "filename": "migrations/20240319_001_payment_multiprocessor.sql",
+        "status": "added",
+        "additions": 48,
+        "deletions": 0,
+        "changes": 48,
+        "patch": "@@ -0,0 +1,48 @@\n+-- Migration: Add multi-processor support to payments schema\n+-- BREAKING: renames paypalSubscriptionId -> externalSubscriptionId, adds processor column\n+\n+BEGIN;\n+\n+-- Add processor enum\n+CREATE TYPE payment_processor AS ENUM ('stripe', 'paypal');\n+\n+-- Update payments table\n+ALTER TABLE payments ADD COLUMN processor payment_processor;\n+UPDATE payments SET processor = 'paypal' WHERE processor IS NULL;\n+ALTER TABLE payments ALTER COLUMN processor SET NOT NULL;\n+ALTER TABLE payments ALTER COLUMN processor SET DEFAULT 'paypal';\n+\n+-- Update subscriptions table: rename column\n+ALTER TABLE subscriptions RENAME COLUMN paypal_subscription_id TO external_subscription_id;\n+ALTER TABLE subscriptions ADD COLUMN processor payment_processor;\n+UPDATE subscriptions SET processor = 'paypal' WHERE processor IS NULL;\n+ALTER TABLE subscriptions ALTER COLUMN processor SET NOT NULL;\n+\n+-- Add stripe customer id column\n+ALTER TABLE subscriptions ADD COLUMN stripe_customer_id VARCHAR(255);\n+ALTER TABLE subscriptions ADD COLUMN stripe_price_id VARCHAR(255);\n+\n+COMMIT;"
+      },
+      {
+        "filename": "src/models/subscription.ts",
+        "status": "modified",
+        "additions": 28,
+        "deletions": 19,
+        "changes": 47,
+        "patch": "@@ -1,20 +1,29 @@\n-export interface Subscription {\n+export type PaymentProcessor = 'stripe' | 'paypal';\n+\n+export interface Subscription {\n   id: string;\n   orgId: string;\n   status: 'active' | 'trialing' | 'past_due' | 'canceled' | 'incomplete';\n-  paypalSubscriptionId: string;\n+  externalSubscriptionId: string;\n+  processor: PaymentProcessor;\n+  stripeCustomerId?: string;\n+  stripePriceId?: string;\n   priceId: string;\n   currentPeriodEnd: Date;\n   cancelAtPeriodEnd: boolean;\n   createdAt: Date;\n   updatedAt: Date;\n }"
+      },
+      {
+        "filename": "src/models/payment.ts",
+        "status": "modified",
+        "additions": 12,
+        "deletions": 8,
+        "changes": 20,
+        "patch": "@@ -1,12 +1,16 @@\n+import { PaymentProcessor } from './subscription';\n+\n export interface Payment {\n   id: string;\n   orgId: string;\n   userId: string;\n   amount: number;\n   currency: string;\n   status: 'pending' | 'succeeded' | 'failed' | 'refunded';\n-  paypalOrderId?: string;\n-  paypalCaptureId?: string;\n+  processor: PaymentProcessor;\n+  externalPaymentId: string;\n+  processorMetadata: Record<string, unknown>;\n   createdAt: Date;\n }"
+      }
+    ]
   },
   {
-    "sha": "t6u7v8w",
-    "message": "test(auth): add integration tests for SSO flow end-to-end",
-    "author": "jane.smith",
-    "date": "2024-03-17T10:00:00Z",
-    "files_changed": ["tests/integration/sso-flow.test.ts", "tests/fixtures/okta-responses.json"],
-    "additions": 312,
-    "deletions": 0
+    "sha": "b1d4f7a0c3e6b9d2f5a8c1e4b7d0a3f6c9b2e5",
+    "commit": {
+      "author": { "name": "Vikram Nair", "email": "vikram.nair@company.com", "date": "2024-03-19T15:30:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-19T15:30:00Z" },
+      "message": "feat(payments): add payment history endpoint with cursor-based pagination\n\nGET /api/v2/payments/history supports cursor pagination (limit/after)\nand filtering by status, date range, and processor.\n\nCloses PLAT-2004",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/b1d4f7a0c3e6b9d2f5a8c1e4b7d0a3f6c9b2e5",
+    "author": { "login": "vikram-nair", "id": 10204, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 112, "additions": 107, "deletions": 5 },
+    "files": [
+      {
+        "filename": "src/api/v2/payments/history.ts",
+        "status": "added",
+        "additions": 88,
+        "deletions": 0,
+        "changes": 88,
+        "patch": "@@ -0,0 +1,88 @@\n+import { Router, Request, Response } from 'express';\n+import { requireAuth } from '../../../middleware/auth';\n+import { db } from '../../../db';\n+import { z } from 'zod';\n+\n+export const historyRouter = Router();\n+\n+const QuerySchema = z.object({\n+  limit: z.coerce.number().int().min(1).max(100).default(20),\n+  after: z.string().optional(),\n+  status: z.enum(['pending', 'succeeded', 'failed', 'refunded']).optional(),\n+  processor: z.enum(['stripe', 'paypal']).optional(),\n+  startDate: z.string().datetime().optional(),\n+  endDate: z.string().datetime().optional(),\n+});\n+\n+historyRouter.get('/', requireAuth, async (req: Request, res: Response) => {\n+  const query = QuerySchema.parse(req.query);\n+  const orgId = req.user!.organizationId;\n+\n+  const where: any = { orgId };\n+  if (query.status) where.status = query.status;\n+  if (query.processor) where.processor = query.processor;\n+  if (query.startDate || query.endDate) {\n+    where.createdAt = {};\n+    if (query.startDate) where.createdAt.gte = new Date(query.startDate);\n+    if (query.endDate) where.createdAt.lte = new Date(query.endDate);\n+  }\n+  if (query.after) where.id = { gt: query.after };\n+\n+  const payments = await db.payments.findMany({\n+    where,\n+    take: query.limit + 1,\n+    orderBy: { createdAt: 'desc' },\n+  });\n+\n+  const hasMore = payments.length > query.limit;\n+  const items = hasMore ? payments.slice(0, -1) : payments;\n+\n+  res.json({\n+    data: items,\n+    pagination: {\n+      hasMore,\n+      nextCursor: hasMore ? items[items.length - 1].id : null,\n+    },\n+  });\n+});"
+      }
+    ]
   },
   {
-    "sha": "x9y0z1a",
-    "message": "docs(auth): update API reference with SSO endpoints",
-    "author": "bob.jones",
-    "date": "2024-03-17T14:30:00Z",
-    "files_changed": ["docs/api-reference.md"],
-    "additions": 78,
-    "deletions": 2
+    "sha": "e3a6c9f2b5d8e1a4c7f0b3d6a9e2c5f8b1d4e7",
+    "commit": {
+      "author": { "name": "Marcus Chen", "email": "marcus.chen@company.com", "date": "2024-03-20T08:45:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-20T08:45:00Z" },
+      "message": "feat(notifications): initialize WebSocket server with connection pooling\n\nAdd ws-server.ts with connection lifecycle management:\n- Heartbeat ping/pong to detect stale connections\n- Per-user connection registry for targeted delivery\n- Graceful shutdown draining connections\n\nCloses PLAT-2010",
+      "comment_count": 2,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/e3a6c9f2b5d8e1a4c7f0b3d6a9e2c5f8b1d4e7",
+    "author": { "login": "marcus-chen", "id": 10207, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 198, "additions": 185, "deletions": 13 },
+    "files": [
+      {
+        "filename": "src/notifications/ws-server.ts",
+        "status": "added",
+        "additions": 148,
+        "deletions": 0,
+        "changes": 148,
+        "patch": "@@ -0,0 +1,148 @@\n+import { WebSocketServer, WebSocket } from 'ws';\n+import { IncomingMessage } from 'http';\n+import { verifyJwt } from '../auth/jwt';\n+import { logger } from '../logger';\n+\n+interface AuthenticatedSocket extends WebSocket {\n+  userId: string;\n+  orgId: string;\n+  isAlive: boolean;\n+}\n+\n+const userConnections = new Map<string, Set<AuthenticatedSocket>>();\n+\n+export function createWsServer(httpServer: any): WebSocketServer {\n+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });\n+\n+  wss.on('connection', async (ws: AuthenticatedSocket, req: IncomingMessage) => {\n+    try {\n+      const token = extractTokenFromRequest(req);\n+      const payload = await verifyJwt(token);\n+      ws.userId = payload.sub;\n+      ws.orgId = payload.orgId;\n+      ws.isAlive = true;\n+    } catch (err) {\n+      ws.close(4001, 'Unauthorized');\n+      return;\n+    }\n+\n+    registerConnection(ws);\n+\n+    ws.on('pong', () => { ws.isAlive = true; });\n+    ws.on('close', () => deregisterConnection(ws));\n+    ws.on('error', (err) => {\n+      logger.error('WebSocket error', { userId: ws.userId, err });\n+      deregisterConnection(ws);\n+    });\n+\n+    ws.send(JSON.stringify({ type: 'connected', userId: ws.userId }));\n+  });\n+\n+  // Heartbeat interval to detect dead connections\n+  const heartbeatInterval = setInterval(() => {\n+    wss.clients.forEach((ws: any) => {\n+      if (!ws.isAlive) return ws.terminate();\n+      ws.isAlive = false;\n+      ws.ping();\n+    });\n+  }, 30000);\n+\n+  wss.on('close', () => clearInterval(heartbeatInterval));\n+  return wss;\n+}\n+\n+export function sendToUser(userId: string, event: object): number {\n+  const sockets = userConnections.get(userId);\n+  if (!sockets?.size) return 0;\n+  const message = JSON.stringify(event);\n+  let sent = 0;\n+  for (const ws of sockets) {\n+    if (ws.readyState === WebSocket.OPEN) {\n+      ws.send(message);\n+      sent++;\n+    }\n+  }\n+  return sent;\n+}\n+\n+function registerConnection(ws: AuthenticatedSocket): void {\n+  if (!userConnections.has(ws.userId)) userConnections.set(ws.userId, new Set());\n+  userConnections.get(ws.userId)!.add(ws);\n+}\n+\n+function deregisterConnection(ws: AuthenticatedSocket): void {\n+  userConnections.get(ws.userId)?.delete(ws);\n+}"
+      },
+      {
+        "filename": "src/server.ts",
+        "status": "modified",
+        "additions": 8,
+        "deletions": 2,
+        "changes": 10,
+        "patch": "@@ -12,8 +12,14 @@\n import { router } from './router';\n+import { createWsServer } from './notifications/ws-server';\n \n const app = express();\n // ... middleware setup ...\n app.use('/api', router);\n \n-const server = app.listen(config.port);\n+const server = app.listen(config.port, () => {\n+  logger.info('HTTP server listening', { port: config.port });\n+});\n+\n+const wss = createWsServer(server);\n+logger.info('WebSocket server attached', { path: '/ws' });"
+      }
+    ]
+  },
+  {
+    "sha": "9d2f5a8b1c4e7d0a3f6b9c2e5d8a1b4c7e0f3",
+    "commit": {
+      "author": { "name": "Marcus Chen", "email": "marcus.chen@company.com", "date": "2024-03-20T11:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-20T11:00:00Z" },
+      "message": "feat(notifications): add notification event types and delivery handlers\n\nDefine typed notification events:\n- payment_succeeded / payment_failed\n- subscription_renewed / subscription_canceled\n- invoice_generated\n- security_alert\n\nDelivery handler publishes to connected WebSocket clients and\nstores a record in the notifications table for offline users.\n\nCloses PLAT-2010",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/9d2f5a8b1c4e7d0a3f6b9c2e5d8a1b4c7e0f3",
+    "author": { "login": "marcus-chen", "id": 10207, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 156, "additions": 150, "deletions": 6 },
+    "files": [
+      {
+        "filename": "src/notifications/types.ts",
+        "status": "added",
+        "additions": 55,
+        "deletions": 0,
+        "changes": 55,
+        "patch": "@@ -0,0 +1,55 @@\n+export type NotificationEventType =\n+  | 'payment_succeeded'\n+  | 'payment_failed'\n+  | 'subscription_renewed'\n+  | 'subscription_canceled'\n+  | 'invoice_generated'\n+  | 'security_alert';\n+\n+export interface NotificationEvent {\n+  id: string;\n+  type: NotificationEventType;\n+  userId: string;\n+  orgId: string;\n+  title: string;\n+  body: string;\n+  metadata?: Record<string, unknown>;\n+  createdAt: string;\n+}\n+\n+export interface PaymentSucceededPayload {\n+  paymentId: string;\n+  amount: number;\n+  currency: string;\n+  processor: 'stripe' | 'paypal';\n+}\n+\n+export interface SubscriptionCanceledPayload {\n+  subscriptionId: string;\n+  cancelAtPeriodEnd: boolean;\n+  currentPeriodEnd: string;\n+}"
+      },
+      {
+        "filename": "src/notifications/handlers.ts",
+        "status": "added",
+        "additions": 88,
+        "deletions": 0,
+        "changes": 88,
+        "patch": "@@ -0,0 +1,88 @@\n+import { sendToUser } from './ws-server';\n+import { db } from '../db';\n+import { NotificationEvent, NotificationEventType } from './types';\n+import { v4 as uuidv4 } from 'uuid';\n+\n+export async function deliverNotification(\n+  userId: string,\n+  orgId: string,\n+  type: NotificationEventType,\n+  payload: {\n+    title: string;\n+    body: string;\n+    metadata?: Record<string, unknown>;\n+  }\n+): Promise<void> {\n+  const event: NotificationEvent = {\n+    id: uuidv4(),\n+    type,\n+    userId,\n+    orgId,\n+    ...payload,\n+    createdAt: new Date().toISOString(),\n+  };\n+\n+  // Persist for offline delivery\n+  await db.notifications.create({ data: event });\n+\n+  // Attempt real-time delivery\n+  const delivered = sendToUser(userId, event);\n+\n+  if (delivered === 0) {\n+    // Mark as unread; user will fetch on next login\n+    await db.notifications.update({ where: { id: event.id }, data: { readAt: null } });\n+  }\n+}"
+      }
+    ]
+  },
+  {
+    "sha": "c4e7a0d3f6c9b2e5a8d1f4b7e0c3a6d9f2b5e8",
+    "commit": {
+      "author": { "name": "Marcus Chen", "email": "marcus.chen@company.com", "date": "2024-03-20T14:15:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-20T14:15:00Z" },
+      "message": "feat(notifications): add client-side WebSocket SDK with exponential backoff reconnect\n\nBrowser-side SDK for the notification WebSocket.\nAuto-reconnects with jittered exponential backoff (max 30s).\nExposes React-friendly event emitter interface.\n\nCloses PLAT-2010",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/c4e7a0d3f6c9b2e5a8d1f4b7e0c3a6d9f2b5e8",
+    "author": { "login": "marcus-chen", "id": 10207, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 124, "additions": 120, "deletions": 4 },
+    "files": [
+      {
+        "filename": "src/client/notifications-sdk.ts",
+        "status": "added",
+        "additions": 102,
+        "deletions": 0,
+        "changes": 102,
+        "patch": "@@ -0,0 +1,102 @@\n+import EventEmitter from 'eventemitter3';\n+import { NotificationEvent } from '../notifications/types';\n+\n+const MAX_RECONNECT_DELAY_MS = 30_000;\n+const BASE_RECONNECT_DELAY_MS = 250;\n+\n+export class NotificationsClient extends EventEmitter {\n+  private ws: WebSocket | null = null;\n+  private reconnectAttempts = 0;\n+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;\n+  private shouldReconnect = true;\n+\n+  constructor(private readonly getAuthToken: () => Promise<string>) {\n+    super();\n+  }\n+\n+  async connect(): Promise<void> {\n+    this.shouldReconnect = true;\n+    await this._connect();\n+  }\n+\n+  disconnect(): void {\n+    this.shouldReconnect = false;\n+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);\n+    this.ws?.close(1000, 'Client disconnect');\n+  }\n+\n+  private async _connect(): Promise<void> {\n+    const token = await this.getAuthToken();\n+    const url = `${location.origin.replace('http', 'ws')}/ws?token=${token}`;\n+    this.ws = new WebSocket(url);\n+\n+    this.ws.onopen = () => {\n+      this.reconnectAttempts = 0;\n+      this.emit('connected');\n+    };\n+\n+    this.ws.onmessage = (event) => {\n+      try {\n+        const notification: NotificationEvent = JSON.parse(event.data);\n+        this.emit('notification', notification);\n+        this.emit(notification.type, notification);\n+      } catch { /* ignore malformed messages */ }\n+    };\n+\n+    this.ws.onclose = () => {\n+      this.emit('disconnected');\n+      if (this.shouldReconnect) this._scheduleReconnect();\n+    };\n+  }\n+\n+  private _scheduleReconnect(): void {\n+    const jitter = Math.random() * 100;\n+    const delay = Math.min(\n+      BASE_RECONNECT_DELAY_MS * Math.pow(2, this.reconnectAttempts) + jitter,\n+      MAX_RECONNECT_DELAY_MS\n+    );\n+    this.reconnectAttempts++;\n+    this.reconnectTimer = setTimeout(() => this._connect(), delay);\n+  }\n+}"
+      }
+    ]
+  },
+  {
+    "sha": "8a1b4c7f0d3e6a9b2c5f8d1a4b7e0c3f6a9d2",
+    "commit": {
+      "author": { "name": "Aisha Okonkwo", "email": "aisha.okonkwo@company.com", "date": "2024-03-21T09:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-21T09:00:00Z" },
+      "message": "perf(database): add migration for composite indexes on hot query paths\n\nDashboard aggregation and reporting queries were doing sequential\nscans on user_events (32M rows) and org_reports. New composite\nindexes cut p99 query time from ~12s to ~180ms in staging.\n\nIndexes added:\n- user_events(org_id, created_at DESC) for time-range filters\n- user_events(org_id, event_type, created_at DESC) for event analytics\n- org_reports(org_id, period_start, period_end) for billing reports\n\nCloses PLAT-2016",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/8a1b4c7f0d3e6a9b2c5f8d1a4b7e0c3f6a9d2",
+    "author": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 42, "additions": 42, "deletions": 0 },
+    "files": [
+      {
+        "filename": "migrations/20240321_001_add_composite_indexes.sql",
+        "status": "added",
+        "additions": 42,
+        "deletions": 0,
+        "changes": 42,
+        "patch": "@@ -0,0 +1,42 @@\n+-- Migration: Add composite indexes for dashboard and reporting query paths\n+-- Expected improvement: p99 latency from ~12s to ~200ms on large orgs\n+\n+-- user_events: primary analytics table (~32M rows, grows 500k/day)\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_events_org_created\n+  ON user_events (org_id, created_at DESC)\n+  WHERE deleted_at IS NULL;\n+\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_user_events_org_type_created\n+  ON user_events (org_id, event_type, created_at DESC)\n+  WHERE deleted_at IS NULL;\n+\n+-- org_reports: billing/analytics aggregation table\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_org_reports_org_period\n+  ON org_reports (org_id, period_start, period_end);\n+\n+-- payments: processor + status filter used in billing dashboards\n+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_payments_org_processor_status\n+  ON payments (org_id, processor, status, created_at DESC);"
+      }
+    ]
+  },
+  {
+    "sha": "f0c3d6a9e2b5c8f1a4d7e0b3c6f9a2d5b8e1c4",
+    "commit": {
+      "author": { "name": "Aisha Okonkwo", "email": "aisha.okonkwo@company.com", "date": "2024-03-21T11:30:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-21T11:30:00Z" },
+      "message": "perf(database): fix N+1 query in dashboard aggregation endpoint\n\nThe /api/v2/dashboard/summary endpoint was issuing O(n) individual\nqueries for each org member's event counts. Replaced with a single\nGROUP BY aggregation query.\n\nAlso replaces 6 separate COUNT(*) subqueries with one CTEs pass.\nReduces query count from 1 + N to 1 per request.\n\nCloses PLAT-2015",
+      "comment_count": 1,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/f0c3d6a9e2b5c8f1a4d7e0b3c6f9a2d5b8e1c4",
+    "author": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 87, "additions": 52, "deletions": 35 },
+    "files": [
+      {
+        "filename": "src/api/v2/dashboard/summary.ts",
+        "status": "modified",
+        "additions": 42,
+        "deletions": 31,
+        "changes": 73,
+        "patch": "@@ -18,38 +18,49 @@\n dashboardRouter.get('/summary', requireAuth, async (req, res) => {\n   const orgId = req.user!.organizationId;\n \n-  // BUG: N+1 - fetches each member then queries events per member\n-  const members = await db.orgMembers.findMany({ where: { orgId } });\n-  const eventCounts: Record<string, number> = {};\n-  for (const member of members) {\n-    eventCounts[member.userId] = await db.userEvents.count({\n-      where: { orgId, userId: member.userId, createdAt: { gte: thirtyDaysAgo } },\n-    });\n-  }\n+  // Single aggregation query replaces N+1\n+  const summary = await db.$queryRaw<DashboardSummaryRow[]>`\n+    WITH event_counts AS (\n+      SELECT user_id, COUNT(*) as event_count, MAX(created_at) as last_event\n+      FROM user_events\n+      WHERE org_id = ${orgId}\n+        AND created_at >= NOW() - INTERVAL '30 days'\n+        AND deleted_at IS NULL\n+      GROUP BY user_id\n+    ),\n+    active_subscriptions AS (\n+      SELECT COUNT(*) as count FROM subscriptions\n+      WHERE org_id = ${orgId} AND status IN ('active', 'trialing')\n+    )\n+    SELECT\n+      COUNT(DISTINCT m.user_id) as total_members,\n+      COALESCE(SUM(ec.event_count), 0) as total_events_30d,\n+      s.count as active_subscription_count\n+    FROM org_members m\n+    LEFT JOIN event_counts ec ON m.user_id = ec.user_id\n+    CROSS JOIN active_subscriptions s\n+    WHERE m.org_id = ${orgId}\n+  `;\n \n-  res.json({ members: members.length, eventCounts });\n+  res.json(summary[0]);\n });"
+      }
+    ]
+  },
+  {
+    "sha": "d7e0c3a6f9d2e5b8c1f4a7d0e3b6a9f2c5d8b1",
+    "commit": {
+      "author": { "name": "Aisha Okonkwo", "email": "aisha.okonkwo@company.com", "date": "2024-03-22T09:15:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-22T09:15:00Z" },
+      "message": "feat(api): implement token bucket rate limiting middleware\n\nAdd configurable rate limiting using an in-process token bucket per\nIP + (userId or orgId). Tracks state in Redis when available,\nfalls back to in-memory LRU when Redis is absent.\n\nDefault limits:\n- Unauthenticated: 30 req/min per IP\n- Authenticated: 300 req/min per org\n- Search endpoint: 60 req/min per org\n\nReturns Retry-After header on 429.\n\nCloses PLAT-2020",
+      "comment_count": 2,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/d7e0c3a6f9d2e5b8c1f4a7d0e3b6a9f2c5d8b1",
+    "author": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 178, "additions": 172, "deletions": 6 },
+    "files": [
+      {
+        "filename": "src/middleware/rate-limit.ts",
+        "status": "added",
+        "additions": 138,
+        "deletions": 0,
+        "changes": 138,
+        "patch": "@@ -0,0 +1,138 @@\n+import { Request, Response, NextFunction } from 'express';\n+import { LRUCache } from 'lru-cache';\n+import { redis } from '../redis';\n+import { logger } from '../logger';\n+\n+interface BucketState {\n+  tokens: number;\n+  lastRefillAt: number;\n+}\n+\n+const localCache = new LRUCache<string, BucketState>({ max: 50_000 });\n+\n+async function getBucketState(key: string, capacity: number): Promise<BucketState> {\n+  if (redis?.isReady) {\n+    const raw = await redis.get(`rl:${key}`);\n+    return raw ? JSON.parse(raw) : { tokens: capacity, lastRefillAt: Date.now() };\n+  }\n+  return localCache.get(key) ?? { tokens: capacity, lastRefillAt: Date.now() };\n+}\n+\n+async function saveBucketState(key: string, state: BucketState, ttlMs: number): Promise<void> {\n+  if (redis?.isReady) {\n+    await redis.set(`rl:${key}`, JSON.stringify(state), { PX: ttlMs });\n+    return;\n+  }\n+  localCache.set(key, state, { ttl: ttlMs });\n+}\n+\n+export function rateLimitMiddleware(opts: {\n+  capacity: number;\n+  refillRate: number;\n+  refillIntervalMs: number;\n+  keyFn?: (req: Request) => string;\n+}) {\n+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {\n+    const key = opts.keyFn?.(req) ?? (req.user?.organizationId ?? req.ip);\n+    const now = Date.now();\n+\n+    const state = await getBucketState(key, opts.capacity);\n+    const elapsed = now - state.lastRefillAt;\n+    const refills = Math.floor(elapsed / opts.refillIntervalMs) * opts.refillRate;\n+    state.tokens = Math.min(opts.capacity, state.tokens + refills);\n+    state.lastRefillAt = state.tokens < opts.capacity ? state.lastRefillAt + Math.floor(elapsed / opts.refillIntervalMs) * opts.refillIntervalMs : now;\n+\n+    if (state.tokens < 1) {\n+      const retryAfterMs = opts.refillIntervalMs - (now - state.lastRefillAt);\n+      res.setHeader('Retry-After', Math.ceil(retryAfterMs / 1000).toString());\n+      res.status(429).json({ error: 'Rate limit exceeded', retryAfterMs });\n+      return;\n+    }\n+\n+    state.tokens -= 1;\n+    await saveBucketState(key, state, opts.capacity * opts.refillIntervalMs);\n+    next();\n+  };\n+}"
+      }
+    ]
+  },
+  {
+    "sha": "b8d1f4a7c0e3d6b9f2a5c8e1d4b7a0f3c6d9e2",
+    "commit": {
+      "author": { "name": "Aisha Okonkwo", "email": "aisha.okonkwo@company.com", "date": "2024-03-22T11:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-22T11:00:00Z" },
+      "message": "feat(api): add per-endpoint rate limit configuration and apply to router\n\nWire rate limiting middleware into API router with per-endpoint\novverides. Search is more restricted; internal health check exempt.\n\nCloses PLAT-2020",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/b8d1f4a7c0e3d6b9f2a5c8e1d4b7a0f3c6d9e2",
+    "author": { "login": "aisha-okonkwo", "id": 10210, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 68, "additions": 60, "deletions": 8 },
+    "files": [
+      {
+        "filename": "src/config/rate-limits.ts",
+        "status": "added",
+        "additions": 38,
+        "deletions": 0,
+        "changes": 38,
+        "patch": "@@ -0,0 +1,38 @@\n+export const RATE_LIMITS = {\n+  global: {\n+    capacity: 300,\n+    refillRate: 5,\n+    refillIntervalMs: 1000,\n+  },\n+  unauthenticated: {\n+    capacity: 30,\n+    refillRate: 1,\n+    refillIntervalMs: 2000,\n+  },\n+  search: {\n+    capacity: 60,\n+    refillRate: 1,\n+    refillIntervalMs: 1000,\n+  },\n+  paymentWebhook: {\n+    capacity: 500,\n+    refillRate: 10,\n+    refillIntervalMs: 1000,\n+  },\n+} as const;"
+      },
+      {
+        "filename": "src/router.ts",
+        "status": "modified",
+        "additions": 18,
+        "deletions": 3,
+        "changes": 21,
+        "patch": "@@ -3,9 +3,24 @@\n import { paymentsRouter } from './api/v2/payments';\n import { searchRouter } from './api/v2/search';\n+import { rateLimitMiddleware } from './middleware/rate-limit';\n+import { RATE_LIMITS } from './config/rate-limits';\n \n export const router = Router();\n \n-router.use('/v2/payments', paymentsRouter);\n-router.use('/v2/search', searchRouter);\n+// Apply global authenticated rate limit\n+router.use('/v2', rateLimitMiddleware(RATE_LIMITS.global));\n+\n+// Search gets a tighter limit\n+router.use('/v2/search', rateLimitMiddleware(RATE_LIMITS.search), searchRouter);\n+\n+// Payment webhooks need generous limits for Stripe retries\n+router.use(\n+  '/v2/webhooks/stripe',\n+  rateLimitMiddleware(RATE_LIMITS.paymentWebhook),\n+  stripeWebhookRouter\n+);\n+\n+router.use('/v2/payments', paymentsRouter);"
+      }
+    ]
+  },
+  {
+    "sha": "4a7d0e3b6f9c2d5a8e1b4c7f0d3a6b9e2c5f8",
+    "commit": {
+      "author": { "name": "Elena Vasquez", "email": "elena.vasquez@company.com", "date": "2024-03-23T08:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-23T08:00:00Z" },
+      "message": "fix(security)!: CRITICAL - prevent SQL injection in /api/v2/search (CVE-2024-31337)\n\nThe search endpoint was interpolating user-supplied 'q' and 'filters'\nparameters directly into raw SQL via string concatenation, allowing\nattackers to exfiltrate arbitrary data.\n\nFix uses parameterized queries throughout. The `db.rawSearch()` helper\nthat was passing unsanitized input has been removed and replaced with\na safe ORM-based full-text search.\n\nBREAKING: Search results ordering changed slightly due to ORM query\nrestructuring. Wildcard '%' characters in search queries now treated\nas literals (previous behavior was a security bug).\n\nCVE: CVE-2024-31337, CVSS 9.1 (Critical)\n\nCloses PLAT-2025",
+      "comment_count": 4,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/4a7d0e3b6f9c2d5a8e1b4c7f0d3a6b9e2c5f8",
+    "author": { "login": "elena-vasquez", "id": 10215, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 94, "additions": 61, "deletions": 33 },
+    "files": [
+      {
+        "filename": "src/api/v2/search/index.ts",
+        "status": "modified",
+        "additions": 42,
+        "deletions": 28,
+        "changes": 70,
+        "patch": "@@ -8,35 +8,49 @@\n import { db } from '../../../db';\n \n searchRouter.get('/', requireAuth, async (req: Request, res: Response) => {\n-  // VULNERABLE: user input interpolated directly into SQL\n-  const rawQuery = req.query.q as string;\n-  const filters = req.query.filters as string;\n-  const results = await db.rawSearch(\n-    `SELECT * FROM content WHERE body LIKE '%${rawQuery}%' ${filters ? 'AND ' + filters : ''} LIMIT 50`\n-  );\n-  res.json(results);\n+  const rawQuery = (req.query.q as string ?? '').trim();\n+  const filterScope = req.query.scope as string | undefined;\n+\n+  if (!rawQuery || rawQuery.length < 2) {\n+    return res.json({ results: [], total: 0 });\n+  }\n+\n+  // Safe: parameterized full-text search via ORM\n+  const results = await db.content.findMany({\n+    where: {\n+      orgId: req.user!.organizationId,\n+      OR: [\n+        { title: { contains: rawQuery, mode: 'insensitive' } },\n+        { body: { contains: rawQuery, mode: 'insensitive' } },\n+      ],\n+      ...(filterScope ? { scope: filterScope } : {}),\n+    },\n+    select: { id: true, title: true, excerpt: true, createdAt: true },\n+    take: 50,\n+    orderBy: { updatedAt: 'desc' },\n+  });\n+\n+  res.json({ results, total: results.length });\n });"
+      },
+      {
+        "filename": "src/utils/db.ts",
+        "status": "modified",
+        "additions": 5,
+        "deletions": 12,
+        "changes": 17,
+        "patch": "@@ -45,18 +45,11 @@\n export const db = prisma;\n \n-// REMOVED: rawSearch was passing unsanitized input to the DB driver.\n-// Any callers must migrate to ORM-based queries.\n-export async function rawSearch(sql: string): Promise<any[]> {\n-  // This function existed for 'performance' but was never benchmarked.\n-  // It runs arbitrary SQL with no parameterization.\n-  const result = await prisma.$queryRawUnsafe(sql);\n-  return result as any[];\n-}\n+// rawSearch removed — use db.content.findMany() with ORM predicates instead.\n+// See src/api/v2/search/index.ts for the safe replacement."
+      }
+    ]
+  },
+  {
+    "sha": "6b9f2c5e8a1d4b7e0c3f6d9b2e5a8c1f4d7a0",
+    "commit": {
+      "author": { "name": "Elena Vasquez", "email": "elena.vasquez@company.com", "date": "2024-03-23T09:30:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-23T09:30:00Z" },
+      "message": "fix(security): upgrade axios and lodash to patch known CVEs\n\naxios 1.4.0 → 1.7.7: CVE-2024-39338 (SSRF via redirect following)\nlodash 4.17.20 → 4.17.21: CVE-2021-23337 (prototype pollution)\n\nCloses PLAT-2025",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/6b9f2c5e8a1d4b7e0c3f6d9b2e5a8c1f4d7a0",
+    "author": { "login": "elena-vasquez", "id": 10215, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 6, "additions": 3, "deletions": 3 },
+    "files": [
+      {
+        "filename": "package.json",
+        "status": "modified",
+        "additions": 2,
+        "deletions": 2,
+        "changes": 4,
+        "patch": "@@ -12,8 +12,8 @@\n   \"dependencies\": {\n-    \"axios\": \"^1.4.0\",\n-    \"lodash\": \"^4.17.20\",\n+    \"axios\": \"^1.7.7\",\n+    \"lodash\": \"^4.17.21\",\n   }"
+      }
+    ]
+  },
+  {
+    "sha": "2e5d8a1f4b7c0e3a6d9f2b5c8e1a4d7b0f3c6",
+    "commit": {
+      "author": { "name": "Ben Okafor", "email": "ben.okafor@company.com", "date": "2024-03-24T09:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-24T09:00:00Z" },
+      "message": "feat(api)!: BREAKING - remove deprecated v1 REST endpoints\n\nAll /api/v1/* endpoints were deprecated in v2.3.0 (released 2024-01-10)\nwith a 6-month migration window. This commit removes them entirely.\n\nRemoved endpoints:\n- GET/POST /api/v1/users (use /api/v2/users)\n- GET/POST /api/v1/organizations (use /api/v2/orgs)\n- POST /api/v1/auth/login (use /api/v2/auth/token)\n- GET /api/v1/billing (use /api/v2/payments/history)\n- All /api/v1/webhooks (use /api/v2/webhooks)\n\nCloses PLAT-2026",
+      "comment_count": 1,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/2e5d8a1f4b7c0e3a6d9f2b5c8e1a4d7b0f3c6",
+    "author": { "login": "ben-okafor", "id": 10218, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 487, "additions": 8, "deletions": 479 },
+    "files": [
+      {
+        "filename": "src/api/v1/users.ts",
+        "status": "removed",
+        "additions": 0,
+        "deletions": 98,
+        "changes": 98,
+        "patch": "@@ -1,98 +0,0 @@\n-// DEPRECATED since v2.3.0 — use /api/v2/users\n-// This file is removed in v2.5.0\n-..."
+      },
+      {
+        "filename": "src/api/v1/organizations.ts",
+        "status": "removed",
+        "additions": 0,
+        "deletions": 112,
+        "changes": 112,
+        "patch": "@@ -1,112 +0,0 @@\n-// DEPRECATED since v2.3.0 — use /api/v2/orgs\n-..."
+      },
+      {
+        "filename": "src/api/v1/auth.ts",
+        "status": "removed",
+        "additions": 0,
+        "deletions": 87,
+        "changes": 87,
+        "patch": "@@ -1,87 +0,0 @@\n-// DEPRECATED since v2.3.0 — use /api/v2/auth/token\n-..."
+      },
+      {
+        "filename": "src/api/v1/billing.ts",
+        "status": "removed",
+        "additions": 0,
+        "deletions": 76,
+        "changes": 76,
+        "patch": "@@ -1,76 +0,0 @@\n-// DEPRECATED since v2.3.0 — use /api/v2/payments/history\n-..."
+      },
+      {
+        "filename": "src/api/v1/webhooks.ts",
+        "status": "removed",
+        "additions": 0,
+        "deletions": 106,
+        "changes": 106,
+        "patch": "@@ -1,106 +0,0 @@\n-// DEPRECATED since v2.3.0 — use /api/v2/webhooks\n-..."
+      },
+      {
+        "filename": "src/router.ts",
+        "status": "modified",
+        "additions": 3,
+        "deletions": 8,
+        "changes": 11,
+        "patch": "@@ -1,12 +1,7 @@\n import { Router } from 'express';\n-import { v1UsersRouter } from './api/v1/users';\n-import { v1OrgsRouter } from './api/v1/organizations';\n-import { v1AuthRouter } from './api/v1/auth';\n-import { v1BillingRouter } from './api/v1/billing';\n-import { v1WebhooksRouter } from './api/v1/webhooks';\n \n export const router = Router();\n-router.use('/v1', v1UsersRouter, v1OrgsRouter, v1AuthRouter, v1BillingRouter, v1WebhooksRouter);\n+// v1 endpoints removed in v2.5.0. See migration guide.\n router.use('/v2', ...);"
+      }
+    ]
+  },
+  {
+    "sha": "9f2c5d8b1e4a7f0c3b6d9a2e5f8d1b4e7a0c3",
+    "commit": {
+      "author": { "name": "Ben Okafor", "email": "ben.okafor@company.com", "date": "2024-03-24T10:30:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-24T10:30:00Z" },
+      "message": "feat(auth)!: BREAKING - update JWT payload structure\n\nAdd 'jti' (JWT ID) claim for token revocation support.\nAdd 'processor' claim for payment processor context.\nRemove deprecated 'legacy_uid' field (replaced by 'sub' in v2.0).\n\nBREAKING: Any client code reading 'legacy_uid' from JWT payloads must\nbe updated to use 'sub'. JWT tokens issued before this release will\nbecome invalid after rolling restart; users must re-authenticate.\n\nCloses PLAT-2026",
+      "comment_count": 2,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/9f2c5d8b1e4a7f0c3b6d9a2e5f8d1b4e7a0c3",
+    "author": { "login": "ben-okafor", "id": 10218, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 58, "additions": 34, "deletions": 24 },
+    "files": [
+      {
+        "filename": "src/auth/jwt.ts",
+        "status": "modified",
+        "additions": 22,
+        "deletions": 16,
+        "changes": 38,
+        "patch": "@@ -4,24 +4,30 @@\n import { config } from '../config';\n+import { v4 as uuidv4 } from 'uuid';\n \n export interface JwtPayload {\n   sub: string;\n   orgId: string;\n   role: string;\n-  legacy_uid?: string;   // deprecated since v2.0, will be removed\n+  jti: string;           // JWT ID for revocation tracking\n   iat: number;\n   exp: number;\n }\n \n export function signJwt(payload: Omit<JwtPayload, 'iat' | 'exp' | 'jti'>): string {\n   return jwt.sign(\n     {\n       ...payload,\n+      jti: uuidv4(),\n-      legacy_uid: payload.sub,  // backward compat — REMOVED in v2.5.0\n     },\n     config.auth.jwtSecret,\n     { expiresIn: config.auth.jwtExpiry }\n   );\n }"
+      }
+    ]
+  },
+  {
+    "sha": "a3d6f9b2e5c8a1d4f7e0b3c6a9f2d5e8b1c4f7",
+    "commit": {
+      "author": { "name": "Ben Okafor", "email": "ben.okafor@company.com", "date": "2024-03-24T12:00:00Z" },
+      "committer": { "name": "GitHub", "email": "noreply@github.com", "date": "2024-03-24T12:00:00Z" },
+      "message": "docs: update OpenAPI spec and CHANGELOG for v2.5.0\n\n- Add Stripe payment endpoints to OpenAPI spec\n- Add WebSocket notification endpoint documentation\n- Document breaking changes: v1 removal, JWT structure, payment schema\n- Update CHANGELOG.md",
+      "comment_count": 0,
+      "verification": { "verified": true, "reason": "valid" }
+    },
+    "html_url": "https://github.com/company/platform/commit/a3d6f9b2e5c8a1d4f7e0b3c6a9f2d5e8b1c4f7",
+    "author": { "login": "ben-okafor", "id": 10218, "type": "User" },
+    "committer": { "login": "web-flow", "id": 19864447 },
+    "stats": { "total": 312, "additions": 289, "deletions": 23 },
+    "files": [
+      {
+        "filename": "openapi.yaml",
+        "status": "modified",
+        "additions": 248,
+        "deletions": 18,
+        "changes": 266,
+        "patch": "@@ -1,5 +1,5 @@\n openapi: '3.1.0'\n info:\n-  version: '2.4.3'\n+  version: '2.5.0'\n   title: Platform API\n ..."
+      },
+      {
+        "filename": "CHANGELOG.md",
+        "status": "modified",
+        "additions": 41,
+        "deletions": 5,
+        "changes": 46,
+        "patch": "@@ -1,3 +1,44 @@\n+## [2.5.0] - 2024-03-24\n+\n+### Added\n+- Stripe payment processor integration (checkout, subscriptions, webhooks)\n+- Payment history API with cursor-based pagination\n+- Real-time WebSocket notification service\n+- API rate limiting (token bucket, Redis-backed)\n+\n+### Fixed\n+- Critical: SQL injection in /api/v2/search (CVE-2024-31337)\n+- Dashboard N+1 query causing >10s load times for large orgs\n+- Upgraded axios and lodash to fix known CVEs\n+\n+### Breaking Changes\n+- Removed deprecated /api/v1/* endpoints (deprecated since v2.3.0)\n+- Payment schema: `paypalSubscriptionId` renamed to `externalSubscriptionId`, `processor` field required\n+- JWT: `legacy_uid` claim removed; all clients must read `sub`\n+- Search: wildcard `%` characters in queries now treated as literals\n+\n ## [2.4.3] - 2024-01-15\n ..."
+      }
+    ]
   }
 ]
